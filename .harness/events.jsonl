@@ -1,0 +1,4 @@
+{"timestamp": "2026-08-18T20:27:20.743760+00:00", "event": "cycle_created", "cycle_id": "cycle-7eed4fe8a234", "objective": "implementar paginação no modal financeiro"}
+{"timestamp": "2026-08-18T20:27:20.998677+00:00", "event": "checkpoint_created", "checkpoint_id": "cp-9c4f7974a7cf", "cycle_id": "cycle-7eed4fe8a234", "reason": "STRATEGIC"}
+{"timestamp": "2026-08-18T20:27:21.010915+00:00", "event": "planning_context_discovered", "cycle_id": "cycle-7eed4fe8a234"}
+{"timestamp": "2026-08-18T20:27:21.257076+00:00", "event": "checkpoint_created", "checkpoint_id": "cp-9a1a3b574406", "cycle_id": "cycle-7eed4fe8a234", "reason": "STRATEGIC"}
