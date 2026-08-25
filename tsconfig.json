@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
 
     "module": "NodeNext",
@@ -14,5 +14,5 @@
     "sourceMap": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src/**/*"]
 }
