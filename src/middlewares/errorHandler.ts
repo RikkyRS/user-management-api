@@ -32,10 +32,26 @@ const errorHandler = (
     }
 
     if (err instanceof Error && err.message === 'Usuário não encontrado') {
-    return res.status(404).json({
-        message: 'Usuário não encontrado'
-    });
+        return res.status(404).json({
+            message: 'Usuário não encontrado'
+        });
     }
+
+    if (
+        err instanceof Error &&
+        (err.message === 'Não autorizado' || err.message === 'Credenciais inválidas')
+    ) {
+        return res.status(401).json({
+            message: err.message
+        });
+    }
+
+    if (err instanceof Error && err.message === 'Acesso negado') {
+        return res.status(403).json({
+            message: 'Acesso negado'
+        });
+    }
+
     console.error(err);
 
     return res.status(500).json({

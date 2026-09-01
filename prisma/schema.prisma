@@ -13,8 +13,10 @@ datasource db {
 }
 
 enum Role {
-  USER
+  CRM_OWNER
+  OWNER
   ADMIN
+  USER
 }
 
 model Usuario {
