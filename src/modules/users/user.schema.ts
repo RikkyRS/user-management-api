@@ -4,11 +4,22 @@ const senhaSchema = z
     .string()
     .min(8, { message: 'Informe uma senha válida' });
 
-/** Schema de criação (POST) — todos os campos obrigatórios */
+export const roleSchema = z.enum(['CRM_OWNER', 'OWNER', 'ADMIN', 'USER']);
+
+export const roleAtribuivelSchema = z.enum(['OWNER', 'ADMIN', 'USER']);
+
+/** Schema de criação (POST) — sempre nasce USER; role não vem no body */
 export const usuarioSchema = z.object({
     nome: z.string().min(1, { message: 'Informe o nome' }),
     email: z.string().email({ message: 'Informe um e-mail válido' }),
     senha: senhaSchema
+});
+
+/** POST /usuarios (staff) — mesmo contrato do registro; promoção é outro endpoint */
+export const usuarioAdminCreateSchema = usuarioSchema;
+
+export const usuarioRolePatchSchema = z.object({
+    role: roleAtribuivelSchema
 });
 
 /**
@@ -40,7 +51,9 @@ export const usuarioPatchSchema = z
     );
 
 export type UsuarioCreateInput = z.infer<typeof usuarioSchema>;
+export type UsuarioAdminCreateInput = z.infer<typeof usuarioAdminCreateSchema>;
 export type UsuarioPutInput = z.infer<typeof usuarioPutSchema>;
 export type UsuarioPatchInput = z.infer<typeof usuarioPatchSchema>;
+export type UsuarioRolePatchInput = z.infer<typeof usuarioRolePatchSchema>;
 
 export default usuarioSchema;

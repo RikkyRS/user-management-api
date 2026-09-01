@@ -1,10 +1,12 @@
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
+import type { Role } from '../generated/prisma/enums.js';
 import type {
     UsuarioCreateInput,
     UsuarioPutInput,
     UsuarioPatchInput
 } from '../modules/users/user.schema.js';
+import { garantirPodeAlterarRole, garantirPodeDeletar } from '../lib/roles.js';
 
 const usuarioPublicoSelect = {
     id: true,
@@ -26,14 +28,15 @@ const garantirUsuarioExiste = async (id: string) => {
     }
 };
 
-const criarUsuario = async (dados: UsuarioCreateInput) => {
+const criarUsuario = async (dados: UsuarioCreateInput, role: Role = 'USER') => {
     const senhaHash = await bcrypt.hash(dados.senha, 10);
 
     const usuario = await prisma.usuario.create({
         data: {
             nome: dados.nome,
             email: dados.email,
-            senha: senhaHash
+            senha: senhaHash,
+            role
         },
         select: usuarioPublicoSelect
     });
@@ -118,8 +121,42 @@ const atualizarUsuarioParcial = async (id: string, dados: UsuarioPatchInput) => 
     return usuario;
 };
 
-const deletarUsuario = async (id: string) => {
-    await garantirUsuarioExiste(id);
+const alterarRole = async (
+    ator: { id: string; role: Role },
+    id: string,
+    novaRole: Role
+) => {
+    const alvo = await prisma.usuario.findUnique({
+        where: { id },
+        select: { id: true, role: true }
+    });
+
+    if (!alvo) {
+        throw new Error('Usuário não encontrado');
+    }
+
+    garantirPodeAlterarRole(ator, alvo, novaRole);
+
+    const usuario = await prisma.usuario.update({
+        where: { id },
+        data: { role: novaRole },
+        select: usuarioPublicoSelect
+    });
+
+    return usuario;
+};
+
+const deletarUsuario = async (ator: { id: string; role: Role }, id: string) => {
+    const alvo = await prisma.usuario.findUnique({
+        where: { id },
+        select: { id: true, role: true }
+    });
+
+    if (!alvo) {
+        throw new Error('Usuário não encontrado');
+    }
+
+    garantirPodeDeletar(ator, alvo);
 
     await prisma.usuario.delete({
         where: { id }
@@ -136,5 +173,6 @@ export {
     buscarUsuario,
     substituirUsuario,
     atualizarUsuarioParcial,
+    alterarRole,
     deletarUsuario
 };
