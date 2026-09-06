@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -12,19 +10,42 @@ datasource db {
   provider = "postgresql"
 }
 
+/** Role dentro de uma empresa (membership). CRM_OWNER é flag de plataforma em Usuario. */
 enum Role {
-  CRM_OWNER
   OWNER
   ADMIN
   USER
 }
 
-model Usuario {
-  id String @db.Uuid @id @default(uuid())
-  nome  String
-  email String @unique 
-  senha String 
-  role Role @default(USER)
+model Empresa {
+  id        String   @id @default(uuid()) @db.Uuid
+  nome      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  membros   MembroEmpresa[]
+}
+
+model Usuario {
+  id         String   @id @default(uuid()) @db.Uuid
+  nome       String
+  email      String   @unique
+  senha      String
+  isCrmOwner Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  membros    MembroEmpresa[]
+}
+
+model MembroEmpresa {
+  id        String   @id @default(uuid()) @db.Uuid
+  usuarioId String   @db.Uuid
+  empresaId String   @db.Uuid
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, empresaId])
+  @@index([empresaId])
 }

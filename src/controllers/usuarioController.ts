@@ -31,8 +31,9 @@ const criarUsuario = async (
     next: NextFunction
 ) => {
     try {
+        const user = exigirUsuario(req);
         const dados = usuarioAdminCreateSchema.parse(req.body);
-        const usuario = await criarUsuarioService(dados, 'USER');
+        const usuario = await criarUsuarioService(user, dados);
         res.status(201).json(usuario);
     } catch (error) {
         next(error);
@@ -45,7 +46,8 @@ const listarUsuario = async (
     next: NextFunction
 ) => {
     try {
-        const usuarios = await listarUsuariosService();
+        const user = exigirUsuario(req);
+        const usuarios = await listarUsuariosService(user);
         res.json(usuarios);
     } catch (error) {
         next(error);
@@ -61,7 +63,7 @@ const buscarUsuario = async (
         const user = exigirUsuario(req);
         const id = z.string().uuid().parse(req.params.id);
         garantirProprioOuAdmin(user, id);
-        const usuario = await buscarUsuarioService(id);
+        const usuario = await buscarUsuarioService(user, id);
         res.json(usuario);
     } catch (error) {
         next(error);
@@ -78,7 +80,7 @@ const substituirUsuario = async (
         const id = z.string().uuid().parse(req.params.id);
         garantirProprioOuAdmin(user, id);
         const dados = usuarioPutSchema.parse(req.body);
-        const usuario = await substituirUsuarioService(id, dados);
+        const usuario = await substituirUsuarioService(user, id, dados);
         res.json(usuario);
     } catch (error) {
         next(error);
@@ -95,7 +97,7 @@ const atualizarUsuarioParcial = async (
         const id = z.string().uuid().parse(req.params.id);
         garantirProprioOuAdmin(user, id);
         const dados = usuarioPatchSchema.parse(req.body);
-        const usuario = await atualizarUsuarioParcialService(id, dados);
+        const usuario = await atualizarUsuarioParcialService(user, id, dados);
         res.json(usuario);
     } catch (error) {
         next(error);
