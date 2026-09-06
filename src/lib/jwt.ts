@@ -1,10 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
-import type { Role } from '../generated/prisma/enums.js';
-import { isRole } from './roles.js';
+import { isRole, type EffectiveRole } from './roles.js';
 
 export type TokenPayload = {
     id: string;
-    role: Role;
+    role: EffectiveRole;
+    /** Obrigatório para OWNER/ADMIN/USER; opcional para CRM_OWNER (contexto de tenant). */
+    empresaId?: string;
 };
 
 const getSecret = () => {
@@ -18,7 +19,13 @@ const getSecret = () => {
 };
 
 const criarToken = async (payload: TokenPayload) => {
-    return new SignJWT({ role: payload.role })
+    const claims: Record<string, string> = { role: payload.role };
+
+    if (payload.empresaId) {
+        claims.empresaId = payload.empresaId;
+    }
+
+    return new SignJWT(claims)
         .setProtectedHeader({ alg: 'HS256' })
         .setSubject(payload.id)
         .setIssuedAt()
@@ -30,12 +37,14 @@ const lerToken = async (token: string): Promise<TokenPayload> => {
     const { payload } = await jwtVerify(token, getSecret());
     const id = payload.sub;
     const role = payload.role;
+    const empresaId =
+        typeof payload.empresaId === 'string' ? payload.empresaId : undefined;
 
     if (!id || !isRole(role)) {
         throw new Error('Não autorizado');
     }
 
-    return { id, role };
+    return { id, role, empresaId };
 };
 
 export { criarToken, lerToken };

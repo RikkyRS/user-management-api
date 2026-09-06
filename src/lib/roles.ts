@@ -1,24 +1,31 @@
-import type { Role } from '../generated/prisma/enums.js';
+/** Role efetiva na request: CRM_OWNER (plataforma) ou role de membership. */
+export type EffectiveRole = 'CRM_OWNER' | 'OWNER' | 'ADMIN' | 'USER';
 
-const ROLES: readonly Role[] = ['CRM_OWNER', 'OWNER', 'ADMIN', 'USER'];
+export type MembershipRole = 'OWNER' | 'ADMIN' | 'USER';
 
-const ROLES_STAFF: readonly Role[] = ['CRM_OWNER', 'OWNER', 'ADMIN'];
+const ROLES: readonly EffectiveRole[] = ['CRM_OWNER', 'OWNER', 'ADMIN', 'USER'];
 
-const ROLES_ATRIBUIVEIS: readonly Role[] = ['OWNER', 'ADMIN', 'USER'];
+const ROLES_STAFF: readonly EffectiveRole[] = ['CRM_OWNER', 'OWNER', 'ADMIN'];
 
-const isRole = (value: unknown): value is Role =>
+const ROLES_ATRIBUIVEIS: readonly MembershipRole[] = ['OWNER', 'ADMIN', 'USER'];
+
+const isRole = (value: unknown): value is EffectiveRole =>
     typeof value === 'string' && (ROLES as readonly string[]).includes(value);
 
-const isStaff = (role: Role) => ROLES_STAFF.includes(role);
+const isMembershipRole = (value: unknown): value is MembershipRole =>
+    typeof value === 'string' &&
+    (ROLES_ATRIBUIVEIS as readonly string[]).includes(value);
 
-type Ator = { id: string; role: Role };
-type Alvo = { id: string; role: Role };
+const isStaff = (role: EffectiveRole) => ROLES_STAFF.includes(role);
 
-const garantirPodeAlterarRole = (ator: Ator, alvo: Alvo, novaRole: Role) => {
-    if (novaRole === 'CRM_OWNER') {
-        throw new Error('Acesso negado');
-    }
+type Ator = { id: string; role: EffectiveRole };
+type Alvo = { id: string; role: EffectiveRole };
 
+const garantirPodeAlterarRole = (
+    ator: Ator,
+    alvo: Alvo,
+    novaRole: MembershipRole
+) => {
     if (alvo.role === 'CRM_OWNER') {
         throw new Error('Acesso negado');
     }
@@ -28,11 +35,7 @@ const garantirPodeAlterarRole = (ator: Ator, alvo: Alvo, novaRole: Role) => {
     }
 
     if (ator.role === 'CRM_OWNER') {
-        if (ROLES_ATRIBUIVEIS.includes(novaRole)) {
-            return;
-        }
-
-        throw new Error('Acesso negado');
+        return;
     }
 
     if (ator.role === 'OWNER') {
@@ -82,6 +85,7 @@ export {
     ROLES_STAFF,
     ROLES_ATRIBUIVEIS,
     isRole,
+    isMembershipRole,
     isStaff,
     garantirPodeAlterarRole,
     garantirPodeDeletar

@@ -14,12 +14,28 @@ const prisma = new PrismaClient({
 });
 
 const seed = async () => {
+    let empresa = await prisma.empresa.findFirst({
+        orderBy: { createdAt: 'asc' }
+    });
+
+    if (!empresa) {
+        empresa = await prisma.empresa.create({
+            data: { nome: process.env.EMPRESA_DEMO_NOME ?? 'Empresa Demo' }
+        });
+        console.log(`Empresa demo criada: ${empresa.nome} (${empresa.id})`);
+    } else {
+        console.log(`Empresa demo: ${empresa.nome} (${empresa.id})`);
+    }
+
     const existente = await prisma.usuario.findFirst({
-        where: { role: 'CRM_OWNER' }
+        where: { isCrmOwner: true }
     });
 
     if (existente) {
         console.log(`CRM_OWNER já existe: ${existente.email}`);
+        console.log(
+            `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
+        );
         return;
     }
 
@@ -29,7 +45,7 @@ const seed = async () => {
 
     if (!email) {
         console.log(
-            'Nenhum CRM_OWNER no banco. Defina CRM_OWNER_EMAIL (e CRM_OWNER_PASSWORD se for criar) e rode o seed, ou faça UPDATE no SQL.'
+            'Nenhum CRM_OWNER. Defina CRM_OWNER_EMAIL (+ PASSWORD) e rode o seed.'
         );
         return;
     }
@@ -41,9 +57,12 @@ const seed = async () => {
     if (porEmail) {
         await prisma.usuario.update({
             where: { id: porEmail.id },
-            data: { role: 'CRM_OWNER' }
+            data: { isCrmOwner: true }
         });
         console.log(`Usuário existente promovido a CRM_OWNER: ${email}`);
+        console.log(
+            `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
+        );
         return;
     }
 
@@ -64,12 +83,15 @@ const seed = async () => {
             nome,
             email,
             senha: senhaHash,
-            role: 'CRM_OWNER'
+            isCrmOwner: true
         },
-        select: { id: true, email: true, role: true }
+        select: { id: true, email: true, isCrmOwner: true }
     });
 
     console.log(`CRM_OWNER criado: ${dono.email}`);
+    console.log(
+        `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
+    );
 };
 
 seed()

@@ -1,11 +1,13 @@
-import type { Role } from '../generated/prisma/enums.js';
+import type { EffectiveRole } from '../lib/roles.js';
 
 declare global {
     namespace Express {
         interface Request {
             user?: {
                 id: string;
-                role: Role;
+                role: EffectiveRole;
+                empresaId?: string;
+                isCrmOwner: boolean;
             };
         }
     }

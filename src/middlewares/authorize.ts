@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import type { Role } from '../generated/prisma/enums.js';
+import type { EffectiveRole } from '../lib/roles.js';
 
-const authorize = (...roles: Role[]) => {
-    return (req: Request, res: Response, next: NextFunction) => {
+const authorize = (...roles: EffectiveRole[]) => {
+    return (req: Request, _res: Response, next: NextFunction) => {
         if (!req.user) {
             return next(new Error('Não autorizado'));
         }

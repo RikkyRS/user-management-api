@@ -4,8 +4,10 @@ const senhaSchema = z
     .string()
     .min(8, { message: 'Informe uma senha válida' });
 
+/** Role efetiva (JWT / UI). CRM_OWNER não é membership. */
 export const roleSchema = z.enum(['CRM_OWNER', 'OWNER', 'ADMIN', 'USER']);
 
+/** Só estas roles existem em MembroEmpresa e no PATCH /role. */
 export const roleAtribuivelSchema = z.enum(['OWNER', 'ADMIN', 'USER']);
 
 /** Schema de criação (POST) — sempre nasce USER; role não vem no body */

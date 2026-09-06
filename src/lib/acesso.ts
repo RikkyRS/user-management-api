@@ -1,8 +1,8 @@
-import type { Role } from '../generated/prisma/enums.js';
+import type { EffectiveRole } from './roles.js';
 import { isStaff } from './roles.js';
 
 const garantirProprioOuAdmin = (
-    user: { id: string; role: Role },
+    user: { id: string; role: EffectiveRole },
     recursoId: string
 ) => {
     if (isStaff(user.role) || user.id === recursoId) {
@@ -12,4 +12,12 @@ const garantirProprioOuAdmin = (
     throw new Error('Acesso negado');
 };
 
-export { garantirProprioOuAdmin };
+const exigirEmpresaId = (user: { empresaId?: string }) => {
+    if (!user.empresaId) {
+        throw new Error('Contexto de empresa obrigatório');
+    }
+
+    return user.empresaId;
+};
+
+export { garantirProprioOuAdmin, exigirEmpresaId };

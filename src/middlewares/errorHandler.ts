@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '../generated/prisma/client.js';
-
+import { MultiplasEmpresasError } from '../lib/errors.js';
 
 const errorHandler = (
     err: unknown,
-    req: Request,
+    _req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
 ) => {
     if (err instanceof z.ZodError) {
         const errors = err.issues.map((erro) => {
@@ -20,6 +20,13 @@ const errorHandler = (
         return res.status(400).json({
             message: 'Dados inválidos',
             errors
+        });
+    }
+
+    if (err instanceof MultiplasEmpresasError) {
+        return res.status(409).json({
+            message: 'Múltiplas empresas — informe empresaId no login',
+            empresas: err.empresas
         });
     }
 
@@ -37,9 +44,25 @@ const errorHandler = (
         });
     }
 
+    if (err instanceof Error && err.message === 'Empresa não encontrada') {
+        return res.status(404).json({
+            message: 'Empresa não encontrada'
+        });
+    }
+
     if (
         err instanceof Error &&
-        (err.message === 'Não autorizado' || err.message === 'Credenciais inválidas')
+        err.message === 'Contexto de empresa obrigatório'
+    ) {
+        return res.status(400).json({
+            message: 'Contexto de empresa obrigatório — faça login com empresaId'
+        });
+    }
+
+    if (
+        err instanceof Error &&
+        (err.message === 'Não autorizado' ||
+            err.message === 'Credenciais inválidas')
     ) {
         return res.status(401).json({
             message: err.message
