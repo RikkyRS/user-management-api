@@ -1,8 +1,8 @@
 # User Management API
 
-API REST multiempresa para um CRM. Sem frontend. Autenticação JWT com **sessão viva**, autorização por hierarquia de roles **por tenant** e cadastro **somente por staff**.
+API REST multiempresa para um CRM. Sem frontend. Autenticação JWT com **sessão viva**, autorização por hierarquia de roles **por tenant**, cadastro de funcionários **somente por staff**, e **Lead** como dado comercial (sem login).
 
-O dono da plataforma (`CRM_OWNER`, flag `isCrmOwner`) nasce no seed/SQL. Cada empresa tem memberships `OWNER` / `ADMIN` / `USER`. Quem não trabalha na empresa não tem auto-cadastro.
+O dono da plataforma (`CRM_OWNER`, flag `isCrmOwner`) nasce no seed/SQL. Cada empresa tem memberships `OWNER` / `ADMIN` / `USER` e seus próprios leads. Quem não trabalha na empresa não tem auto-cadastro. Cliente/lead **não** é `Usuario`.
 
 Documentação de ameaças e findings: [`docs/security`](./docs/security).
 
@@ -25,7 +25,8 @@ Documentação de ameaças e findings: [`docs/security`](./docs/security).
 
 ```text
 Empresa
-  └── MembroEmpresa (usuarioId + empresaId + role OWNER|ADMIN|USER)
+  ├── MembroEmpresa (usuarioId + empresaId + role OWNER|ADMIN|USER)
+  └── Lead (dados comerciais; sem login)
 
 Usuario
   └── isCrmOwner (plataforma; no máximo 1)
@@ -33,7 +34,7 @@ Usuario
 
 JWT: `{ sub, role, empresaId? }`.  
 `authenticate` revalida usuário + membership no banco (Finding 004).  
-Queries de `/usuarios` filtram pelo `empresaId` do token (Finding 003).
+Queries de `/usuarios` e `/leads` filtram pelo `empresaId` do token (Findings 003 / 005).
 
 ### Login
 
@@ -42,7 +43,7 @@ Queries de `/usuarios` filtram pelo `empresaId` do token (Finding 003).
 | Credencial ok + 1 membership | `200` + token |
 | Credencial ok + N memberships sem `empresaId` | `409` + lista `{ id, nome, role }` |
 | Body com `empresaId` válido | `200` + token daquele tenant |
-| `CRM_OWNER` | `200`; `empresaId` opcional (obrigatório para operar `/usuarios`) |
+| `CRM_OWNER` | `200`; `empresaId` opcional (obrigatório para `/usuarios` e `/leads`) |
 
 ---
 
@@ -63,16 +64,49 @@ Queries de `/usuarios` filtram pelo `empresaId` do token (Finding 003).
 | `POST /empresas` | sim | não | não | não |
 | Criar usuário | sim (nasce `USER`) | sim | sim | não |
 | Listar usuários do tenant | sim | sim | sim | não |
-| Ver / editar o próprio perfil | sim* | sim | sim | sim |
+| Ver / editar o próprio perfil | sim† | sim | sim | sim |
 | Ver / editar outro no tenant | sim | sim | sim | não |
 | `PATCH .../role` → OWNER/ADMIN/USER | sim | não | não | não |
 | `PATCH .../role` → USER ↔ ADMIN | sim | sim | não | não |
 | Deletar OWNER | sim | não | não | não |
 | Deletar ADMIN/USER | sim | sim | sim | não |
+| Criar Lead | sim | sim | sim | não* |
+| Listar / editar todos os Leads do tenant | sim | sim | sim | não* |
+| Ver / editar Lead em que é responsável | sim | sim | sim | sim |
+| Deletar Lead | sim | sim | sim | não |
 
-\* CRM_OWNER precisa de `empresaId` no token para rotas de usuários.
+\* USER não cria Lead; staff cria e pode atribuir `responsavelUsuarioId`.  
+† CRM_OWNER precisa de `empresaId` no token para rotas de usuários e leads.
 
-Ninguém altera a própria role. Delete remove membership; se for a última e não for CRM_OWNER, apaga a conta (token morre).
+Ninguém altera a própria role. Delete de usuário remove membership; se for a última e não for CRM_OWNER, apaga a conta (token morre).
+
+---
+
+## Lead
+
+Registro comercial da empresa. **Sem senha, sem JWT, sem acesso ao sistema.**
+
+| Campo | Obrigatório | Notas |
+|---|---|---|
+| `nome` | sim | |
+| `telefone` | sim | único por `empresaId` → 409 se repetir |
+| `email` | não | se informado, único por `empresaId` → 409 |
+| `origem` | não | ex.: `whatsapp` |
+| `interesse` | não | |
+| `status` | default `NOVO` | funil abaixo |
+| `responsavelUsuarioId` | não | membro do tenant (vendedor) |
+
+Funil (`status`):
+
+```text
+NOVO → EM_ATENDIMENTO → QUALIFICADO → PROPOSTA → NEGOCIACAO → CLIENTE
+                                                              ↘ PERDIDO
+```
+
+Regras de acesso:
+- Staff: cria, lista todos, edita todos, deleta.
+- USER: só lê/edita leads em que `responsavelUsuarioId ===` o próprio id; não deleta.
+- Fora do tenant → `404` (Finding 005).
 
 ---
 
@@ -95,6 +129,10 @@ Autenticado (`Authorization: Bearer`):
 | `GET/PUT/PATCH` | `/usuarios/:id` | staff ou próprio | No tenant |
 | `PATCH` | `/usuarios/:id/role` | ver tabela | Membership role |
 | `DELETE` | `/usuarios/:id` | staff | Remove do tenant (+ conta se última) |
+| `POST` | `/leads` | staff + empresa | Cria lead |
+| `GET` | `/leads` | autenticado + empresa | Staff: todos; USER: só os seus |
+| `GET/PUT/PATCH` | `/leads/:id` | autenticado + escopo | Staff ou responsável |
+| `DELETE` | `/leads/:id` | staff | Remove lead |
 
 `POST /auth/register` **não existe** (Finding 001).
 
@@ -131,6 +169,36 @@ Content-Type: application/json
 { "nome": "Ana", "email": "ana@empresa.com", "senha": "minimo8c" }
 ```
 
+### Criar lead (staff)
+
+```http
+POST /leads
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "nome": "Maria",
+  "telefone": "+5511999990000",
+  "email": "maria@cliente.com",
+  "origem": "whatsapp",
+  "interesse": "plano pro",
+  "status": "NOVO",
+  "responsavelUsuarioId": "<uuid-vendedor>"
+}
+```
+
+`201` — objeto do lead. Telefone ou e-mail repetido no mesmo tenant → `409`.
+
+### Atualizar status do funil
+
+```http
+PATCH /leads/<uuid>
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "status": "EM_ATENDIMENTO" }
+```
+
 ---
 
 ## Ambiente
@@ -159,7 +227,7 @@ npm run dev
 
 ## Fora de escopo (hoje)
 
-Frontend, CI, paginação, WhatsApp, agentes de IA, RAG, White Label, rate limit, refresh token.
+Frontend, CI, paginação pesada, WhatsApp webhook, agentes de IA, RAG, White Label, rate limit, refresh token.
 
 ---
 
