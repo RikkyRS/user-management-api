@@ -25,7 +25,8 @@ Documentação de ameaças e findings: [`docs/security`](./docs/security).
 
 ```text
 Empresa
-  └── MembroEmpresa (usuarioId + empresaId + role OWNER|ADMIN|USER)
+  ├── MembroEmpresa (usuarioId + empresaId + role OWNER|ADMIN|USER)
+  └── Lead (dados comerciais; sem login)
 
 Usuario
   └── isCrmOwner (plataforma; no máximo 1)
@@ -33,7 +34,7 @@ Usuario
 
 JWT: `{ sub, role, empresaId? }`.  
 `authenticate` revalida usuário + membership no banco (Finding 004).  
-Queries de `/usuarios` filtram pelo `empresaId` do token (Finding 003).
+Queries de `/usuarios` e `/leads` filtram pelo `empresaId` do token (Findings 003 / 005).
 
 ### Login
 
@@ -63,14 +64,18 @@ Queries de `/usuarios` filtram pelo `empresaId` do token (Finding 003).
 | `POST /empresas` | sim | não | não | não |
 | Criar usuário | sim (nasce `USER`) | sim | sim | não |
 | Listar usuários do tenant | sim | sim | sim | não |
-| Ver / editar o próprio perfil | sim* | sim | sim | sim |
+| Ver / editar o próprio perfil | sim† | sim | sim | sim |
 | Ver / editar outro no tenant | sim | sim | sim | não |
 | `PATCH .../role` → OWNER/ADMIN/USER | sim | não | não | não |
 | `PATCH .../role` → USER ↔ ADMIN | sim | sim | não | não |
 | Deletar OWNER | sim | não | não | não |
 | Deletar ADMIN/USER | sim | sim | sim | não |
+| Criar / listar / editar Lead (todos do tenant) | sim | sim | sim | não* |
+| Ver / editar Lead em que é responsável | sim | sim | sim | sim |
+| Deletar Lead | sim | sim | sim | não |
 
-\* CRM_OWNER precisa de `empresaId` no token para rotas de usuários.
+\* USER não cria Lead; staff cria e pode atribuir `responsavelUsuarioId`.  
+† CRM_OWNER precisa de `empresaId` no token para rotas de usuários e leads.
 
 Ninguém altera a própria role. Delete remove membership; se for a última e não for CRM_OWNER, apaga a conta (token morre).
 
@@ -95,8 +100,15 @@ Autenticado (`Authorization: Bearer`):
 | `GET/PUT/PATCH` | `/usuarios/:id` | staff ou próprio | No tenant |
 | `PATCH` | `/usuarios/:id/role` | ver tabela | Membership role |
 | `DELETE` | `/usuarios/:id` | staff | Remove do tenant (+ conta se última) |
+| `POST` | `/leads` | staff + empresa | Cria lead (sem login) |
+| `GET` | `/leads` | autenticado + empresa | Staff: todos; USER: só os seus |
+| `GET/PUT/PATCH` | `/leads/:id` | autenticado + escopo | Staff ou responsável |
+| `DELETE` | `/leads/:id` | staff | Remove lead |
 
-`POST /auth/register` **não existe** (Finding 001).
+`POST /auth/register` **não existe** (Finding 001). Lead **não** tem senha/JWT (Finding 005).
+
+Funil (`status`): `NOVO` → `EM_ATENDIMENTO` → `QUALIFICADO` → `PROPOSTA` → `NEGOCIACAO` → `CLIENTE` \| `PERDIDO`.
+`telefone` único por empresa. `email` (quando informado) também único por empresa.
 
 ---
 
@@ -131,6 +143,22 @@ Content-Type: application/json
 { "nome": "Ana", "email": "ana@empresa.com", "senha": "minimo8c" }
 ```
 
+### Criar lead (staff)
+
+```http
+POST /leads
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "nome": "Maria",
+  "telefone": "+5511999990000",
+  "origem": "whatsapp",
+  "interesse": "plano pro",
+  "responsavelUsuarioId": "<uuid-vendedor>"
+}
+```
+
 ---
 
 ## Ambiente
@@ -159,7 +187,7 @@ npm run dev
 
 ## Fora de escopo (hoje)
 
-Frontend, CI, paginação, WhatsApp, agentes de IA, RAG, White Label, rate limit, refresh token.
+Frontend, CI, paginação pesada, WhatsApp webhook, agentes de IA, RAG, White Label, rate limit, refresh token.
 
 ---
 

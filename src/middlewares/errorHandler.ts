@@ -32,6 +32,38 @@ const errorHandler = (
 
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
         if (err.code === 'P2002') {
+            const model = String(err.meta?.modelName ?? '');
+            const target = err.meta?.target;
+            const targetRaw = Array.isArray(target)
+                ? target.join(',')
+                : String(target ?? '');
+            const adapterMsg = String(
+                (
+                    err.meta as {
+                        driverAdapterError?: {
+                            cause?: { originalMessage?: string };
+                        };
+                    }
+                )?.driverAdapterError?.cause?.originalMessage ?? ''
+            );
+            const blob =
+                `${model}|${targetRaw}|${adapterMsg}|${err.message}`.toLowerCase();
+
+            if (blob.includes('telefone')) {
+                return res.status(409).json({
+                    message: 'Telefone já cadastrado neste tenant'
+                });
+            }
+
+            if (
+                blob.includes('lead_empresaid_email') ||
+                (model === 'Lead' && blob.includes('email'))
+            ) {
+                return res.status(409).json({
+                    message: 'E-mail já cadastrado neste tenant'
+                });
+            }
+
             return res.status(409).json({
                 message: 'E-mail já cadastrado'
             });
@@ -41,6 +73,21 @@ const errorHandler = (
     if (err instanceof Error && err.message === 'Usuário não encontrado') {
         return res.status(404).json({
             message: 'Usuário não encontrado'
+        });
+    }
+
+    if (err instanceof Error && err.message === 'Lead não encontrado') {
+        return res.status(404).json({
+            message: 'Lead não encontrado'
+        });
+    }
+
+    if (
+        err instanceof Error &&
+        err.message === 'Responsável inválido para o tenant'
+    ) {
+        return res.status(400).json({
+            message: 'Responsável inválido para o tenant'
         });
     }
 
