@@ -16,6 +16,7 @@ export class ApiError extends Error {
 type RequestOptions = {
   method?: string;
   body?: unknown;
+  /** @deprecated sessão via cookie HttpOnly; Bearer só se passado explicitamente */
   token?: string | null;
   auth?: boolean;
 };
@@ -30,14 +31,16 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     headers['Content-Type'] = 'application/json';
   }
 
-  const token = options.token !== undefined ? options.token : getToken();
-  if (auth && token) {
-    headers.Authorization = `Bearer ${token}`;
+  // Compat legado: se ainda houver token em storage (sessão antiga), manda Bearer
+  const legacy = options.token !== undefined ? options.token : getToken();
+  if (auth && legacy) {
+    headers.Authorization = `Bearer ${legacy}`;
   }
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
+    credentials: 'include',
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 

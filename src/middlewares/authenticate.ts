@@ -2,9 +2,21 @@ import { Request, Response, NextFunction } from 'express';
 import { lerToken } from '../lib/jwt.js';
 import prisma from '../lib/prisma.js';
 import type { EffectiveRole } from '../lib/roles.js';
+import { parseSessionToken } from '../lib/sessionCookie.js';
+
+function extractToken(req: Request): string | null {
+    const header = req.headers.authorization;
+    if (header?.startsWith('Bearer ')) {
+        const bearer = header.slice('Bearer '.length).trim();
+        if (bearer) return bearer;
+    }
+
+    return parseSessionToken(req.headers.cookie);
+}
 
 /**
  * Sessão viva: JWT só prova identidade + contexto.
+ * Aceita Authorization Bearer (tools/CI) ou cookie HttpOnly crm_session (browser).
  * Delete de usuário ou perda de membership → 401 na próxima request.
  * Troca de senha (tokenVersion) → 401 (Finding 007).
  * Role efetiva sempre vem do banco (não confia só no claim).
@@ -15,13 +27,12 @@ const authenticate = async (
     next: NextFunction
 ) => {
     try {
-        const header = req.headers.authorization;
+        const token = extractToken(req);
 
-        if (!header?.startsWith('Bearer ')) {
+        if (!token) {
             throw new Error('Não autorizado');
         }
 
-        const token = header.slice('Bearer '.length);
         const claims = await lerToken(token);
 
         const usuario = await prisma.usuario.findUnique({
