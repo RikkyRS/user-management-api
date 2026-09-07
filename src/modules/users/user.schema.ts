@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const senhaSchema = z
     .string()
-    .min(8, { message: 'Informe uma senha válida' });
+    .min(8, { message: 'Informe uma senha válida' })
+    .max(128, { message: 'Senha deve ter no máximo 128 caracteres' });
 
 /** Role efetiva (JWT / UI). CRM_OWNER não é membership. */
 export const roleSchema = z.enum(['CRM_OWNER', 'OWNER', 'ADMIN', 'USER']);

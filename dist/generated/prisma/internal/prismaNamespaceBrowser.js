@@ -39,7 +39,10 @@ export const JsonNull = runtime.JsonNull;
  */
 export const AnyNull = runtime.AnyNull;
 export const ModelName = {
-    Usuario: 'Usuario'
+    Empresa: 'Empresa',
+    Usuario: 'Usuario',
+    MembroEmpresa: 'MembroEmpresa',
+    Lead: 'Lead'
 };
 /*
  * Enums
@@ -50,12 +53,40 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
     RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 });
+export const EmpresaScalarFieldEnum = {
+    id: 'id',
+    nome: 'nome',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
 export const UsuarioScalarFieldEnum = {
     id: 'id',
     nome: 'nome',
     email: 'email',
     senha: 'senha',
+    tokenVersion: 'tokenVersion',
+    isCrmOwner: 'isCrmOwner',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+export const MembroEmpresaScalarFieldEnum = {
+    id: 'id',
+    usuarioId: 'usuarioId',
+    empresaId: 'empresaId',
     role: 'role',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+export const LeadScalarFieldEnum = {
+    id: 'id',
+    empresaId: 'empresaId',
+    nome: 'nome',
+    telefone: 'telefone',
+    email: 'email',
+    origem: 'origem',
+    interesse: 'interesse',
+    status: 'status',
+    responsavelUsuarioId: 'responsavelUsuarioId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };
@@ -66,5 +97,9 @@ export const SortOrder = {
 export const QueryMode = {
     default: 'default',
     insensitive: 'insensitive'
+};
+export const NullsOrder = {
+    first: 'first',
+    last: 'last'
 };
 //# sourceMappingURL=prismaNamespaceBrowser.js.map

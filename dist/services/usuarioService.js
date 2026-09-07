@@ -1,95 +1,182 @@
-import prisma from "../lib/prisma.js";
-import bcrypt from "bcrypt";
-const usuarioPublicoSelect = {
-    id: true,
-    nome: true,
-    email: true,
-    role: true,
-    createdAt: true,
-    updatedAt: true
-};
-const garantirUsuarioExiste = async (id) => {
-    const usuario = await prisma.usuario.findUnique({
-        where: { id },
-        select: { id: true }
+import prisma from '../lib/prisma.js';
+import bcrypt from 'bcrypt';
+import { garantirPodeAlterarRole, garantirPodeDeletar } from '../lib/roles.js';
+import { exigirEmpresaId } from '../lib/acesso.js';
+const mapMembroPublico = (membro) => ({
+    id: membro.usuario.id,
+    nome: membro.usuario.nome,
+    email: membro.usuario.email,
+    role: membro.usuario.isCrmOwner ? 'CRM_OWNER' : membro.role,
+    empresaId: membro.empresaId,
+    isCrmOwner: membro.usuario.isCrmOwner,
+    createdAt: membro.usuario.createdAt,
+    updatedAt: membro.usuario.updatedAt
+});
+const buscarMembroNoTenant = async (empresaId, usuarioId) => {
+    return prisma.membroEmpresa.findUnique({
+        where: {
+            usuarioId_empresaId: { usuarioId, empresaId }
+        },
+        select: {
+            role: true,
+            empresaId: true,
+            usuario: {
+                select: {
+                    id: true,
+                    nome: true,
+                    email: true,
+                    isCrmOwner: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            }
+        }
     });
-    if (!usuario) {
-        throw new Error('Usuário não encontrado');
-    }
 };
-const criarUsuario = async (dados) => {
+const criarUsuario = async (ator, dados) => {
+    const empresaId = exigirEmpresaId(ator);
     const senhaHash = await bcrypt.hash(dados.senha, 10);
     const usuario = await prisma.usuario.create({
         data: {
             nome: dados.nome,
             email: dados.email,
-            senha: senhaHash
+            senha: senhaHash,
+            membros: {
+                create: {
+                    empresaId,
+                    role: 'USER'
+                }
+            }
         },
-        select: usuarioPublicoSelect
+        select: {
+            id: true,
+            nome: true,
+            email: true,
+            isCrmOwner: true,
+            createdAt: true,
+            updatedAt: true
+        }
     });
-    return usuario;
+    return {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        role: 'USER',
+        empresaId,
+        isCrmOwner: false,
+        createdAt: usuario.createdAt,
+        updatedAt: usuario.updatedAt
+    };
 };
-const listarUsuarios = async () => {
-    const usuarios = await prisma.usuario.findMany({
-        select: usuarioPublicoSelect
+const listarUsuarios = async (ator) => {
+    const empresaId = exigirEmpresaId(ator);
+    const membros = await prisma.membroEmpresa.findMany({
+        where: { empresaId },
+        select: {
+            role: true,
+            empresaId: true,
+            usuario: {
+                select: {
+                    id: true,
+                    nome: true,
+                    email: true,
+                    isCrmOwner: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            }
+        }
     });
-    return usuarios;
+    return membros.map(mapMembroPublico);
 };
-const buscarUsuario = async (id) => {
-    const usuario = await prisma.usuario.findUnique({
-        where: { id },
-        select: usuarioPublicoSelect
-    });
-    if (!usuario) {
+const buscarUsuario = async (ator, id) => {
+    const empresaId = exigirEmpresaId(ator);
+    const membro = await buscarMembroNoTenant(empresaId, id);
+    if (!membro) {
         throw new Error('Usuário não encontrado');
     }
-    return usuario;
+    return mapMembroPublico(membro);
 };
-/** PUT — substituição completa do perfil editável (nome + email; senha se vier) */
-const substituirUsuario = async (id, dados) => {
-    await garantirUsuarioExiste(id);
+const garantirAlvoNoTenant = async (empresaId, id) => {
+    const membro = await buscarMembroNoTenant(empresaId, id);
+    if (!membro) {
+        throw new Error('Usuário não encontrado');
+    }
+    return membro;
+};
+const substituirUsuario = async (ator, id, dados) => {
+    const empresaId = exigirEmpresaId(ator);
+    await garantirAlvoNoTenant(empresaId, id);
     const data = {
         nome: dados.nome,
         email: dados.email
     };
     if (dados.senha !== undefined) {
         data.senha = await bcrypt.hash(dados.senha, 10);
+        data.tokenVersion = { increment: 1 };
     }
-    const usuario = await prisma.usuario.update({
-        where: { id },
-        data,
-        select: usuarioPublicoSelect
-    });
-    return usuario;
+    await prisma.usuario.update({ where: { id }, data });
+    const membro = await garantirAlvoNoTenant(empresaId, id);
+    return mapMembroPublico(membro);
 };
-/** PATCH — atualização parcial (só os campos enviados) */
-const atualizarUsuarioParcial = async (id, dados) => {
-    await garantirUsuarioExiste(id);
+const atualizarUsuarioParcial = async (ator, id, dados) => {
+    const empresaId = exigirEmpresaId(ator);
+    await garantirAlvoNoTenant(empresaId, id);
     const data = {};
-    if (dados.nome !== undefined) {
+    if (dados.nome !== undefined)
         data.nome = dados.nome;
-    }
-    if (dados.email !== undefined) {
+    if (dados.email !== undefined)
         data.email = dados.email;
-    }
     if (dados.senha !== undefined) {
         data.senha = await bcrypt.hash(dados.senha, 10);
+        data.tokenVersion = { increment: 1 };
     }
-    const usuario = await prisma.usuario.update({
-        where: { id },
-        data,
-        select: usuarioPublicoSelect
-    });
-    return usuario;
+    await prisma.usuario.update({ where: { id }, data });
+    const membro = await garantirAlvoNoTenant(empresaId, id);
+    return mapMembroPublico(membro);
 };
-const deletarUsuario = async (id) => {
-    await garantirUsuarioExiste(id);
-    await prisma.usuario.delete({
-        where: { id }
+const alterarRole = async (ator, id, novaRole) => {
+    const empresaId = exigirEmpresaId(ator);
+    const alvo = await garantirAlvoNoTenant(empresaId, id);
+    if (alvo.usuario.isCrmOwner) {
+        throw new Error('Acesso negado');
+    }
+    garantirPodeAlterarRole(ator, { id: alvo.usuario.id, role: alvo.role }, novaRole);
+    await prisma.membroEmpresa.update({
+        where: {
+            usuarioId_empresaId: { usuarioId: id, empresaId }
+        },
+        data: { role: novaRole }
     });
-    return {
-        mensagem: 'Usuário deletado com sucesso'
-    };
+    const atualizado = await garantirAlvoNoTenant(empresaId, id);
+    return mapMembroPublico(atualizado);
 };
-export { criarUsuario, listarUsuarios, buscarUsuario, substituirUsuario, atualizarUsuarioParcial, deletarUsuario };
+/**
+ * Remove membership no tenant. Se não restar membership e não for CRM_OWNER,
+ * apaga a conta — token daquele tenant (e da conta) morre no authenticate.
+ */
+const deletarUsuario = async (ator, id) => {
+    const empresaId = exigirEmpresaId(ator);
+    const alvo = await garantirAlvoNoTenant(empresaId, id);
+    if (alvo.usuario.isCrmOwner) {
+        throw new Error('Acesso negado');
+    }
+    garantirPodeDeletar(ator, {
+        id: alvo.usuario.id,
+        role: alvo.role
+    });
+    await prisma.membroEmpresa.delete({
+        where: {
+            usuarioId_empresaId: { usuarioId: id, empresaId }
+        }
+    });
+    const restantes = await prisma.membroEmpresa.count({
+        where: { usuarioId: id }
+    });
+    if (restantes === 0) {
+        await prisma.usuario.delete({ where: { id } });
+    }
+    return { mensagem: 'Usuário deletado com sucesso' };
+};
+export { criarUsuario, listarUsuarios, buscarUsuario, substituirUsuario, atualizarUsuarioParcial, alterarRole, deletarUsuario };
 //# sourceMappingURL=usuarioService.js.map

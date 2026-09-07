@@ -155,13 +155,19 @@ const substituirUsuario = async (
     const empresaId = exigirEmpresaId(ator);
     await garantirAlvoNoTenant(empresaId, id);
 
-    const data: { nome: string; email: string; senha?: string } = {
+    const data: {
+        nome: string;
+        email: string;
+        senha?: string;
+        tokenVersion?: { increment: number };
+    } = {
         nome: dados.nome,
         email: dados.email
     };
 
     if (dados.senha !== undefined) {
         data.senha = await bcrypt.hash(dados.senha, 10);
+        data.tokenVersion = { increment: 1 };
     }
 
     await prisma.usuario.update({ where: { id }, data });
@@ -177,12 +183,18 @@ const atualizarUsuarioParcial = async (
     const empresaId = exigirEmpresaId(ator);
     await garantirAlvoNoTenant(empresaId, id);
 
-    const data: { nome?: string; email?: string; senha?: string } = {};
+    const data: {
+        nome?: string;
+        email?: string;
+        senha?: string;
+        tokenVersion?: { increment: number };
+    } = {};
 
     if (dados.nome !== undefined) data.nome = dados.nome;
     if (dados.email !== undefined) data.email = dados.email;
     if (dados.senha !== undefined) {
         data.senha = await bcrypt.hash(dados.senha, 10);
+        data.tokenVersion = { increment: 1 };
     }
 
     await prisma.usuario.update({ where: { id }, data });

@@ -1,12 +1,22 @@
 import { z } from 'zod';
 const senhaSchema = z
     .string()
-    .min(8, { message: 'Informe uma senha válida' });
-/** Schema de criação (POST) — todos os campos obrigatórios */
+    .min(8, { message: 'Informe uma senha válida' })
+    .max(128, { message: 'Senha deve ter no máximo 128 caracteres' });
+/** Role efetiva (JWT / UI). CRM_OWNER não é membership. */
+export const roleSchema = z.enum(['CRM_OWNER', 'OWNER', 'ADMIN', 'USER']);
+/** Só estas roles existem em MembroEmpresa e no PATCH /role. */
+export const roleAtribuivelSchema = z.enum(['OWNER', 'ADMIN', 'USER']);
+/** Schema de criação (POST) — sempre nasce USER; role não vem no body */
 export const usuarioSchema = z.object({
     nome: z.string().min(1, { message: 'Informe o nome' }),
     email: z.string().email({ message: 'Informe um e-mail válido' }),
     senha: senhaSchema
+});
+/** POST /usuarios (staff) — mesmo contrato do registro; promoção é outro endpoint */
+export const usuarioAdminCreateSchema = usuarioSchema;
+export const usuarioRolePatchSchema = z.object({
+    role: roleAtribuivelSchema
 });
 /**
  * PUT — substituição do perfil editável.
