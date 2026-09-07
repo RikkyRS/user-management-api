@@ -1,13 +1,23 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
+import { SESSION_COOKIE } from '../src/lib/sessionCookie.js';
 
 const email = process.env.CRM_OWNER_EMAIL ?? 'ci-owner@example.com';
 const senha = process.env.CRM_OWNER_PASSWORD ?? 'minimo8chars';
 
+function cookieFrom(res: request.Response): string {
+    const raw = res.headers['set-cookie'];
+    if (!raw) return '';
+    const list = Array.isArray(raw) ? raw : [raw];
+    const session = list.find((c) => c.startsWith(`${SESSION_COOKIE}=`));
+    return session?.split(';')[0] ?? '';
+}
+
 describe('API smoke', () => {
     let token = '';
     let empresaId = '';
+    let sessionCookie = '';
 
     beforeAll(async () => {
         const login = await request(app).post('/auth/login').send({
@@ -17,7 +27,9 @@ describe('API smoke', () => {
 
         expect(login.status).toBe(200);
         expect(login.body.token).toBeTruthy();
+        expect(cookieFrom(login)).toContain(`${SESSION_COOKIE}=`);
         token = login.body.token as string;
+        sessionCookie = cookieFrom(login);
 
         // CRM_OWNER sem empresaId no login: busca lista e faz login com contexto
         const empresas = await request(app)
@@ -33,12 +45,14 @@ describe('API smoke', () => {
             });
             expect(comEmpresa.status).toBe(200);
             token = comEmpresa.body.token as string;
+            sessionCookie = cookieFrom(comEmpresa);
         } else {
             // já veio com empresa no token
             empresaId = (login.body.usuario?.empresaId as string) ?? '';
         }
 
         expect(empresaId).toBeTruthy();
+        expect(sessionCookie).toBeTruthy();
     });
 
     it('GET /health → 200', async () => {
@@ -47,13 +61,22 @@ describe('API smoke', () => {
         expect(res.body).toEqual({ status: 'ok' });
     });
 
-    it('GET /auth/me → perfil CRM_OWNER', async () => {
+    it('GET /auth/me → perfil CRM_OWNER (Bearer)', async () => {
         const res = await request(app)
             .get('/auth/me')
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toBe(200);
         expect(res.body.email).toBe(email);
         expect(res.body.role).toBe('CRM_OWNER');
+        expect(res.body.isCrmOwner).toBe(true);
+    });
+
+    it('GET /auth/me → perfil via cookie HttpOnly', async () => {
+        const res = await request(app)
+            .get('/auth/me')
+            .set('Cookie', sessionCookie);
+        expect(res.status).toBe(200);
+        expect(res.body.email).toBe(email);
         expect(res.body.isCrmOwner).toBe(true);
     });
 
@@ -68,6 +91,16 @@ describe('API smoke', () => {
             senha: 'senha-errada-xx'
         });
         expect(res.status).toBe(401);
+    });
+
+    it('POST /auth/logout limpa cookie', async () => {
+        const res = await request(app).post('/auth/logout');
+        expect(res.status).toBe(204);
+        const cleared = cookieFrom(res);
+        expect(cleared).toContain(`${SESSION_COOKIE}=`);
+        expect(cleared === `${SESSION_COOKIE}=` || cleared.startsWith(`${SESSION_COOKIE}=;`)).toBe(
+            true
+        );
     });
 
     it('GET /usuarios paginado', async () => {

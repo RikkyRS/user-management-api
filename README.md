@@ -16,7 +16,7 @@ Documentação de ameaças e findings: [`docs/security`](./docs/security).
 | HTTP | Express 5 |
 | Validação | Zod |
 | Persistência | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`) |
-| Auth | JWT HS256 (`jose`), bcrypt, sessão viva + `tokenVersion`, rate limit no login |
+| Auth | JWT HS256 (`jose`), cookie HttpOnly + Bearer, sessão viva + `tokenVersion`, rate limit no login |
 | Deploy | Docker non-root (`USER node`) + HEALTHCHECK; Render: migrate + `node dist/server.js` |
 
 ---
@@ -120,7 +120,7 @@ Público:
 | `GET` | `/health` | `{ "status": "ok" }` |
 | `POST` | `/auth/login` | `{ email, senha, empresaId? }` |
 
-Autenticado (`Authorization: Bearer`):
+Autenticado (cookie `crm_session` HttpOnly **ou** `Authorization: Bearer`):
 
 | Método | Rota | Quem | Descrição |
 |---|---|---|---|
@@ -214,6 +214,8 @@ Content-Type: application/json
 | `JWT_SECRET` | Obrigatório no boot |
 | `PORT` | Default `3000` |
 | `CORS_ORIGIN` | Origem do front (ex. `http://localhost:3001`); vazio = CORS off |
+| `COOKIE_SAMESITE` | `none` (default, cross-origin) / `lax` / `strict` |
+| `COOKIE_SECURE` | `true` força Secure; SameSite=None sempre usa Secure |
 | `CRM_OWNER_EMAIL` / `PASSWORD` / `NOME` | Seed do dono da plataforma |
 | `EMPRESA_DEMO_NOME` | Seed: nome da primeira empresa |
 

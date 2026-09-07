@@ -29,4 +29,4 @@ No `.env` da API: `CORS_ORIGIN="http://localhost:3001"`.
 - `/leads` — lista
 - `/leads/[id]` — detalhe
 
-Token JWT em `localStorage` (`crm_token`). Sem Kanban, conversas ou IA nesta fase.
+Token JWT em cookie HttpOnly (`crm_session`) com `credentials: 'include'`. Sem Kanban, conversas ou IA nesta fase.

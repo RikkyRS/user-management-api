@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
-import { clearToken, getToken, setToken } from '@/lib/auth';
+import { clearToken } from '@/lib/auth';
 import type { EmpresaOption, Me } from '@/lib/types';
 
 type AuthContextValue = {
@@ -38,11 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const refreshMe = useCallback(async () => {
-    const token = getToken();
-    if (!token) {
-      setMe(null);
-      return;
-    }
     const perfil = await api<Me>('/auth/me');
     setMe(perfil);
   }, []);
@@ -51,13 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        if (!getToken()) {
-          if (!cancelled) setMe(null);
-          return;
-        }
+        clearToken(); // aposenta localStorage legado
         await refreshMe();
       } catch {
-        clearToken();
         if (!cancelled) setMe(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -71,12 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, senha: string, empresaId?: string) => {
       try {
-        const result = await api<{ token: string; usuario: Me }>('/auth/login', {
+        const result = await api<{ token?: string; usuario: Me }>('/auth/login', {
           method: 'POST',
           body: { email, senha, ...(empresaId ? { empresaId } : {}) },
           auth: false,
         });
-        setToken(result.token);
+        clearToken();
         setMe(result.usuario);
         return {
           needsEmpresa: false,
@@ -99,9 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    clearToken();
-    setMe(null);
-    router.replace('/login');
+    void (async () => {
+      try {
+        await api('/auth/logout', { method: 'POST', auth: false });
+      } catch {
+        // limpa estado local mesmo se logout falhar
+      } finally {
+        clearToken();
+        setMe(null);
+        router.replace('/login');
+      }
+    })();
   }, [router]);
 
   const value = useMemo(

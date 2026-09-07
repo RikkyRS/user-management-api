@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { api, ApiError } from '@/lib/api';
-import { getToken } from '@/lib/auth';
 import type { EmpresaOption } from '@/lib/types';
 
 export default function LoginPage() {
@@ -14,14 +13,17 @@ export default function LoginPage() {
   const [senha, setSenha] = useState('');
   const [empresaId, setEmpresaId] = useState('');
   const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
+  /** Impede redirect enquanto o usuário escolhe empresa (caso 409). */
+  const [pickingEmpresa, setPickingEmpresa] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && me && getToken()) {
+    // Só redireciona se já tem tenant na sessão e não está no meio da escolha
+    if (!loading && !pickingEmpresa && me?.empresaId) {
       router.replace('/dashboard');
     }
-  }, [loading, me, router]);
+  }, [loading, me, router, pickingEmpresa]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -29,28 +31,30 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const result = await login(email.trim(), senha, empresaId || undefined);
+
+      // Várias memberships → usuário escolhe (fica na tela)
       if (result.needsEmpresa) {
+        setPickingEmpresa(true);
         setEmpresas(result.empresas);
         setError('Selecione a empresa para continuar.');
         return;
       }
 
-      // CRM_OWNER pode logar sem tenant — precisa escolher empresa
+      // CRM_OWNER sem tenant: auto 1ª empresa (sem flash de select)
       if (result.usuario && !result.usuario.empresaId) {
-        try {
-          const lista = await api<{ id: string; nome: string }[]>('/empresas');
-          if (lista.length > 0) {
-            setEmpresas(
-              lista.map((e) => ({ id: e.id, nome: e.nome, role: 'CRM_OWNER' }))
-            );
-            setError('Selecione a empresa para continuar.');
-            return;
-          }
-        } catch {
-          // segue sem contexto
+        const lista = await api<{ id: string; nome: string }[]>('/empresas');
+        if (lista.length === 0) {
+          setError('Nenhuma empresa cadastrada. Crie uma antes de entrar.');
+          return;
         }
+        const primeira = lista[0];
+        await login(email.trim(), senha, primeira.id);
+        setPickingEmpresa(false);
+        router.replace('/dashboard');
+        return;
       }
 
+      setPickingEmpresa(false);
       router.replace('/dashboard');
     } catch (err) {
       const message =
@@ -100,7 +104,7 @@ export default function LoginPage() {
             />
           </label>
 
-          {empresas.length > 0 && (
+          {pickingEmpresa && empresas.length > 0 && (
             <label className="block text-sm">
               <span className="text-[var(--muted)]">Empresa</span>
               <select

@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, me } from '../controllers/authController.js';
+import { login, me, logout } from '../controllers/authController.js';
 import authenticate from '../middlewares/authenticate.js';
 const authRouter = express.Router();
 /** Finding 008 — 100 req / 15 min / IP só no login. */
@@ -12,6 +12,7 @@ const loginRateLimit = rateLimit({
     message: { message: 'Muitas tentativas de login — tente novamente mais tarde' }
 });
 authRouter.post('/login', loginRateLimit, login);
+authRouter.post('/logout', logout);
 authRouter.get('/me', authenticate, me);
 export default authRouter;
 //# sourceMappingURL=authRoutes.js.map

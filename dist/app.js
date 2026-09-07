@@ -5,6 +5,7 @@ import usuarioRouter from './routes/usuarioRoutes.js';
 import authRouter from './routes/authRoutes.js';
 import empresaRouter from './routes/empresaRoutes.js';
 import leadRouter from './routes/leadRoutes.js';
+import csrfOrigin from './middlewares/csrfOrigin.js';
 import errorHandler from './middlewares/errorHandler.js';
 const app = express();
 app.use(helmet());
@@ -14,6 +15,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '32kb' }));
+app.use(csrfOrigin);
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
 });
