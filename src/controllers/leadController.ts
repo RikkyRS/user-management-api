@@ -3,7 +3,8 @@ import { z } from 'zod';
 import {
     leadCreateSchema,
     leadPutSchema,
-    leadPatchSchema
+    leadPatchSchema,
+    leadListQuerySchema
 } from '../modules/leads/lead.schema.js';
 import {
     criarLead as criarLeadService,
@@ -44,8 +45,9 @@ const listarLeads = async (
 ) => {
     try {
         const user = exigirUsuario(req);
-        const leads = await listarLeadsService(user);
-        res.json(leads);
+        const query = leadListQuerySchema.parse(req.query);
+        const resultado = await listarLeadsService(user, query);
+        res.json(resultado);
     } catch (error) {
         next(error);
     }

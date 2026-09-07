@@ -14,6 +14,16 @@ const errorHandler = (err, _req, res, _next) => {
             errors
         });
     }
+    // Finding 010 — body acima do limit do express.json
+    if (err instanceof Error &&
+        (err.type ===
+            'entity.too.large' ||
+            err.status === 413 ||
+            err.statusCode === 413)) {
+        return res.status(413).json({
+            message: 'Payload muito grande'
+        });
+    }
     if (err instanceof MultiplasEmpresasError) {
         return res.status(409).json({
             message: 'Múltiplas empresas — informe empresaId no login',

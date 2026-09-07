@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js';
 import bcrypt from 'bcrypt';
 import { garantirPodeAlterarRole, garantirPodeDeletar } from '../lib/roles.js';
 import { exigirEmpresaId } from '../lib/acesso.js';
+import { skipTake, toPage } from '../lib/pagination.js';
 const mapMembroPublico = (membro) => ({
     id: membro.usuario.id,
     nome: membro.usuario.nome,
@@ -68,26 +69,34 @@ const criarUsuario = async (ator, dados) => {
         updatedAt: usuario.updatedAt
     };
 };
-const listarUsuarios = async (ator) => {
+const listarUsuarios = async (ator, page, limit) => {
     const empresaId = exigirEmpresaId(ator);
-    const membros = await prisma.membroEmpresa.findMany({
-        where: { empresaId },
-        select: {
-            role: true,
-            empresaId: true,
-            usuario: {
-                select: {
-                    id: true,
-                    nome: true,
-                    email: true,
-                    isCrmOwner: true,
-                    createdAt: true,
-                    updatedAt: true
+    const where = { empresaId };
+    const { skip, take } = skipTake(page, limit);
+    const [total, membros] = await Promise.all([
+        prisma.membroEmpresa.count({ where }),
+        prisma.membroEmpresa.findMany({
+            where,
+            skip,
+            take,
+            orderBy: { createdAt: 'asc' },
+            select: {
+                role: true,
+                empresaId: true,
+                usuario: {
+                    select: {
+                        id: true,
+                        nome: true,
+                        email: true,
+                        isCrmOwner: true,
+                        createdAt: true,
+                        updatedAt: true
+                    }
                 }
             }
-        }
-    });
-    return membros.map(mapMembroPublico);
+        })
+    ]);
+    return toPage(membros.map(mapMembroPublico), total, page, limit);
 };
 const buscarUsuario = async (ator, id) => {
     const empresaId = exigirEmpresaId(ator);

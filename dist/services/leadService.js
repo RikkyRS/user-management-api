@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma.js';
 import { exigirEmpresaId } from '../lib/acesso.js';
 import { isStaff } from '../lib/roles.js';
+import { skipTake, toPage } from '../lib/pagination.js';
 const leadSelect = {
     id: true,
     empresaId: true,
@@ -75,13 +76,33 @@ const criarLead = async (ator, dados) => {
         select: leadSelect
     });
 };
-const listarLeads = async (ator) => {
+const listarLeads = async (ator, opts) => {
     const empresaId = exigirEmpresaId(ator);
-    return prisma.lead.findMany({
-        where: escopoListagem(ator, empresaId),
-        select: leadSelect,
-        orderBy: { createdAt: 'desc' }
-    });
+    const where = {
+        ...escopoListagem(ator, empresaId)
+    };
+    if (opts.status) {
+        where.status = opts.status;
+    }
+    if (opts.q) {
+        where.OR = [
+            { nome: { contains: opts.q, mode: 'insensitive' } },
+            { telefone: { contains: opts.q, mode: 'insensitive' } },
+            { email: { contains: opts.q, mode: 'insensitive' } }
+        ];
+    }
+    const { skip, take } = skipTake(opts.page, opts.limit);
+    const [total, data] = await Promise.all([
+        prisma.lead.count({ where }),
+        prisma.lead.findMany({
+            where,
+            select: leadSelect,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take
+        })
+    ]);
+    return toPage(data, total, opts.page, opts.limit);
 };
 const buscarLead = async (ator, id) => {
     const empresaId = exigirEmpresaId(ator);

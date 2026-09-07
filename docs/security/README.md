@@ -25,6 +25,8 @@ Cada peça (cadastro, role, login, health, secrets, tenant, lead) entra por aqui
 |---|---|---|
 | `POST /auth/login` | público | brute force, enumeração, JWT zumbi |
 | `GET /health` | público | info disclosure (hoje não vaza dado) |
+| `GET /auth/me` | autenticado | vazamento de perfil se token fraco |
+| Browser (CORS) | front SPA | origem indevida |
 | `POST /empresas` | CRM_OWNER | criação indevida de tenant |
 | `POST /usuarios` | staff + contexto empresa | criação cross-tenant |
 | `PATCH /usuarios/:id/role` | CRM_OWNER / OWNER | privilege escalation |
@@ -50,8 +52,9 @@ Lead = dado comercial (sem login).
 | [009](./findings/009-timing-enumeracao-email.md) | Autenticação — timing / enum. de e-mail | Corrigido (ciclo 6) |
 | [010](./findings/010-limites-senha-json.md) | Validação — senha max + JSON limit | Corrigido (ciclo 6) |
 | [011](./findings/011-docker-non-root.md) | Deploy — container non-root | Corrigido no Dockerfile (ciclo 6) |
+| [012](./findings/012-cors-helmet.md) | Deploy — CORS + Helmet | Corrigido (ciclo 7) |
 
-Próximos candidatos (fora do ciclo 6): Helmet/CORS, WhatsApp webhook, paginação.
+Próximos candidatos: WhatsApp webhook, frontend, refresh token, OpenAPI.
 
 ## Como abrir um finding novo
 

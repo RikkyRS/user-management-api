@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { leadCreateSchema, leadPutSchema, leadPatchSchema } from '../modules/leads/lead.schema.js';
+import { leadCreateSchema, leadPutSchema, leadPatchSchema, leadListQuerySchema } from '../modules/leads/lead.schema.js';
 import { criarLead as criarLeadService, listarLeads as listarLeadsService, buscarLead as buscarLeadService, substituirLead as substituirLeadService, atualizarLeadParcial as atualizarLeadParcialService, deletarLead as deletarLeadService } from '../services/leadService.js';
 const exigirUsuario = (req) => {
     if (!req.user) {
@@ -21,8 +21,9 @@ const criarLead = async (req, res, next) => {
 const listarLeads = async (req, res, next) => {
     try {
         const user = exigirUsuario(req);
-        const leads = await listarLeadsService(user);
-        res.json(leads);
+        const query = leadListQuerySchema.parse(req.query);
+        const resultado = await listarLeadsService(user, query);
+        res.json(resultado);
     }
     catch (error) {
         next(error);

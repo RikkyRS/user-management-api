@@ -1,6 +1,7 @@
 import { usuarioAdminCreateSchema, usuarioPutSchema, usuarioPatchSchema, usuarioRolePatchSchema } from '../modules/users/user.schema.js';
 import { criarUsuario as criarUsuarioService, listarUsuarios as listarUsuariosService, buscarUsuario as buscarUsuarioService, substituirUsuario as substituirUsuarioService, atualizarUsuarioParcial as atualizarUsuarioParcialService, alterarRole as alterarRoleService, deletarUsuario as deletarUsuarioService } from '../services/usuarioService.js';
 import { garantirProprioOuAdmin } from '../lib/acesso.js';
+import { paginationQuerySchema } from '../lib/pagination.js';
 import { z } from 'zod';
 const exigirUsuario = (req) => {
     if (!req.user) {
@@ -22,8 +23,9 @@ const criarUsuario = async (req, res, next) => {
 const listarUsuario = async (req, res, next) => {
     try {
         const user = exigirUsuario(req);
-        const usuarios = await listarUsuariosService(user);
-        res.json(usuarios);
+        const { page, limit } = paginationQuerySchema.parse(req.query);
+        const resultado = await listarUsuariosService(user, page, limit);
+        res.json(resultado);
     }
     catch (error) {
         next(error);

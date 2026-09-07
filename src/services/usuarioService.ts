@@ -12,6 +12,7 @@ import {
     type MembershipRole
 } from '../lib/roles.js';
 import { exigirEmpresaId } from '../lib/acesso.js';
+import { skipTake, toPage } from '../lib/pagination.js';
 
 type Ator = {
     id: string;
@@ -102,28 +103,40 @@ const criarUsuario = async (ator: Ator, dados: UsuarioCreateInput) => {
     };
 };
 
-const listarUsuarios = async (ator: Ator) => {
+const listarUsuarios = async (
+    ator: Ator,
+    page: number,
+    limit: number
+) => {
     const empresaId = exigirEmpresaId(ator);
+    const where = { empresaId };
+    const { skip, take } = skipTake(page, limit);
 
-    const membros = await prisma.membroEmpresa.findMany({
-        where: { empresaId },
-        select: {
-            role: true,
-            empresaId: true,
-            usuario: {
-                select: {
-                    id: true,
-                    nome: true,
-                    email: true,
-                    isCrmOwner: true,
-                    createdAt: true,
-                    updatedAt: true
+    const [total, membros] = await Promise.all([
+        prisma.membroEmpresa.count({ where }),
+        prisma.membroEmpresa.findMany({
+            where,
+            skip,
+            take,
+            orderBy: { createdAt: 'asc' },
+            select: {
+                role: true,
+                empresaId: true,
+                usuario: {
+                    select: {
+                        id: true,
+                        nome: true,
+                        email: true,
+                        isCrmOwner: true,
+                        createdAt: true,
+                        updatedAt: true
+                    }
                 }
             }
-        }
-    });
+        })
+    ]);
 
-    return membros.map(mapMembroPublico);
+    return toPage(membros.map(mapMembroPublico), total, page, limit);
 };
 
 const buscarUsuario = async (ator: Ator, id: string) => {
