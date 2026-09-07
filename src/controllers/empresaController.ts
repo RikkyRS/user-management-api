@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { empresaCreateSchema } from '../modules/empresas/empresa.schema.js';
+import { z } from 'zod';
+import {
+    empresaCreateSchema,
+    empresaPatchSchema
+} from '../modules/empresas/empresa.schema.js';
 import {
     criarEmpresa as criarEmpresaService,
-    listarEmpresas as listarEmpresasService
+    listarEmpresas as listarEmpresasService,
+    atualizarEmpresa as atualizarEmpresaService
 } from '../services/empresaService.js';
 
 const criarEmpresa = async (
@@ -32,4 +37,19 @@ const listarEmpresas = async (
     }
 };
 
-export { criarEmpresa, listarEmpresas };
+const atualizarEmpresa = async (
+    req: Request<{ id: string }>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const id = z.string().uuid().parse(req.params.id);
+        const dados = empresaPatchSchema.parse(req.body);
+        const empresa = await atualizarEmpresaService(id, dados);
+        res.json(empresa);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export { criarEmpresa, listarEmpresas, atualizarEmpresa };

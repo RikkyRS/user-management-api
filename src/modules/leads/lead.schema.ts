@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paginationQuerySchema } from '../../lib/pagination.js';
 
 export const leadStatusSchema = z.enum([
     'NOVO',
@@ -68,3 +69,10 @@ export const leadPatchSchema = z
 export type LeadCreateInput = z.infer<typeof leadCreateSchema>;
 export type LeadPutInput = z.infer<typeof leadPutSchema>;
 export type LeadPatchInput = z.infer<typeof leadPatchSchema>;
+
+export const leadListQuerySchema = paginationQuerySchema.extend({
+    status: leadStatusSchema.optional(),
+    q: z.string().trim().min(1).max(100).optional()
+});
+
+export type LeadListQuery = z.infer<typeof leadListQuerySchema>;

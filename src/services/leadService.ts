@@ -1,11 +1,17 @@
 import prisma from '../lib/prisma.js';
 import { exigirEmpresaId } from '../lib/acesso.js';
 import { isStaff, type EffectiveRole } from '../lib/roles.js';
-import type {
-    LeadCreateInput,
-    LeadPutInput,
-    LeadPatchInput
+import { skipTake, toPage } from '../lib/pagination.js';
+import {
+    leadStatusSchema,
+    type LeadCreateInput,
+    type LeadPutInput,
+    type LeadPatchInput
 } from '../modules/leads/lead.schema.js';
+import type { z } from 'zod';
+import type { Prisma } from '../generated/prisma/client.js';
+
+type LeadStatus = z.infer<typeof leadStatusSchema>;
 
 type Ator = {
     id: string;
@@ -108,14 +114,46 @@ const criarLead = async (ator: Ator, dados: LeadCreateInput) => {
     });
 };
 
-const listarLeads = async (ator: Ator) => {
+const listarLeads = async (
+    ator: Ator,
+    opts: {
+        page: number;
+        limit: number;
+        status?: LeadStatus;
+        q?: string;
+    }
+) => {
     const empresaId = exigirEmpresaId(ator);
+    const where: Prisma.LeadWhereInput = {
+        ...escopoListagem(ator, empresaId)
+    };
 
-    return prisma.lead.findMany({
-        where: escopoListagem(ator, empresaId),
-        select: leadSelect,
-        orderBy: { createdAt: 'desc' }
-    });
+    if (opts.status) {
+        where.status = opts.status;
+    }
+
+    if (opts.q) {
+        where.OR = [
+            { nome: { contains: opts.q, mode: 'insensitive' } },
+            { telefone: { contains: opts.q, mode: 'insensitive' } },
+            { email: { contains: opts.q, mode: 'insensitive' } }
+        ];
+    }
+
+    const { skip, take } = skipTake(opts.page, opts.limit);
+
+    const [total, data] = await Promise.all([
+        prisma.lead.count({ where }),
+        prisma.lead.findMany({
+            where,
+            select: leadSelect,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take
+        })
+    ]);
+
+    return toPage(data, total, opts.page, opts.limit);
 };
 
 const buscarLead = async (ator: Ator, id: string) => {

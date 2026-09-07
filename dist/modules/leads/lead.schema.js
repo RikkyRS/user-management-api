@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paginationQuerySchema } from '../../lib/pagination.js';
 export const leadStatusSchema = z.enum([
     'NOVO',
     'EM_ATENDIMENTO',
@@ -55,4 +56,8 @@ export const leadPatchSchema = z
     data.interesse !== undefined ||
     data.status !== undefined ||
     data.responsavelUsuarioId !== undefined, { message: 'Informe ao menos um campo para atualizar' });
+export const leadListQuerySchema = paginationQuerySchema.extend({
+    status: leadStatusSchema.optional(),
+    q: z.string().trim().min(1).max(100).optional()
+});
 //# sourceMappingURL=lead.schema.js.map

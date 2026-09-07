@@ -124,16 +124,20 @@ Autenticado (`Authorization: Bearer`):
 
 | Método | Rota | Quem | Descrição |
 |---|---|---|---|
+| `GET` | `/auth/me` | autenticado | Perfil do ator do token |
 | `GET/POST` | `/empresas` | CRM_OWNER | Listar / criar tenant |
+| `PATCH` | `/empresas/:id` | CRM_OWNER | Renomear empresa |
 | `POST` | `/usuarios` | staff + empresa | Cria USER no tenant |
-| `GET` | `/usuarios` | staff + empresa | Lista do tenant |
+| `GET` | `/usuarios` | staff + empresa | Lista paginada `{ data, page, limit, total }` (`?page&limit`) |
 | `GET/PUT/PATCH` | `/usuarios/:id` | staff ou próprio | No tenant |
 | `PATCH` | `/usuarios/:id/role` | ver tabela | Membership role |
 | `DELETE` | `/usuarios/:id` | staff | Remove do tenant (+ conta se última) |
 | `POST` | `/leads` | staff + empresa | Cria lead |
-| `GET` | `/leads` | autenticado + empresa | Staff: todos; USER: só os seus |
+| `GET` | `/leads` | autenticado + empresa | Paginado + `?status&q`; staff: todos; USER: só os seus |
 | `GET/PUT/PATCH` | `/leads/:id` | autenticado + escopo | Staff ou responsável |
 | `DELETE` | `/leads/:id` | staff | Remove lead |
+
+Paginação: `page` (default 1), `limit` (default 20, max 100).
 
 `POST /auth/register` **não existe** (Finding 001).
 
@@ -209,6 +213,7 @@ Content-Type: application/json
 | `DATABASE_URL` | Postgres |
 | `JWT_SECRET` | Obrigatório no boot |
 | `PORT` | Default `3000` |
+| `CORS_ORIGIN` | Origem do front (ex. `http://localhost:5173`); vazio = CORS off |
 | `CRM_OWNER_EMAIL` / `PASSWORD` / `NOME` | Seed do dono da plataforma |
 | `EMPRESA_DEMO_NOME` | Seed: nome da primeira empresa |
 
@@ -228,7 +233,7 @@ npm run dev
 
 ## Fora de escopo (hoje)
 
-Frontend, CI, paginação pesada, WhatsApp webhook, agentes de IA, RAG, White Label, rate limit, refresh token.
+Frontend, CI, WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI.
 
 ---
 
