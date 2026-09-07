@@ -213,7 +213,7 @@ Content-Type: application/json
 | `DATABASE_URL` | Postgres |
 | `JWT_SECRET` | Obrigatório no boot |
 | `PORT` | Default `3000` |
-| `CORS_ORIGIN` | Origem do front (ex. `http://localhost:5173`); vazio = CORS off |
+| `CORS_ORIGIN` | Origem do front (ex. `http://localhost:3001`); vazio = CORS off |
 | `CRM_OWNER_EMAIL` / `PASSWORD` / `NOME` | Seed do dono da plataforma |
 | `EMPRESA_DEMO_NOME` | Seed: nome da primeira empresa |
 
@@ -242,7 +242,11 @@ CI no GitHub Actions (PR + `main`): `npm ci` → migrate → seed → build → 
 
 ## Fora de escopo (hoje)
 
-Frontend, WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI, deploy automático.
+WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI, deploy automático.
+
+### Frontend
+
+Pasta [`web/`](./web) — MVP fase 1 (login, dashboard, leads). Ver `web/README.md`.
 
 ---
 
