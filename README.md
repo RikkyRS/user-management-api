@@ -229,11 +229,20 @@ npx prisma db seed
 npm run dev
 ```
 
+### Testes
+
+```bash
+npm test          # Vitest smoke (precisa Postgres + seed)
+npm run build     # tsc
+```
+
+CI no GitHub Actions (PR + `main`): `npm ci` → migrate → seed → build → test, com Postgres 17.
+
 ---
 
 ## Fora de escopo (hoje)
 
-Frontend, CI, WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI.
+Frontend, WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI, deploy automático.
 
 ---
 

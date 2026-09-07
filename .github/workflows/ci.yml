@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: user_management
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d user_management"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/user_management
+      JWT_SECRET: ci-test-jwt-secret-not-for-production
+      CRM_OWNER_EMAIL: ci-owner@example.com
+      CRM_OWNER_PASSWORD: minimo8chars
+      CRM_OWNER_NOME: CI Owner
+      EMPRESA_DEMO_NOME: Empresa Demo
+      CORS_ORIGIN: http://localhost:5173
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Migrate
+        run: npx prisma migrate deploy
+
+      - name: Seed CRM_OWNER
+        run: npx prisma db seed
+
+      - name: Typecheck / build
+        run: npm run build
+
+      - name: Test
+        run: npm test
