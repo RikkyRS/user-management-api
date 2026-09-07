@@ -16,8 +16,8 @@ Documentação de ameaças e findings: [`docs/security`](./docs/security).
 | HTTP | Express 5 |
 | Validação | Zod |
 | Persistência | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`) |
-| Auth | JWT HS256 (`jose`), senha com bcrypt, check de membership a cada request |
-| Deploy | Docker (Render): `prisma migrate deploy` + `node dist/server.js` |
+| Auth | JWT HS256 (`jose`), bcrypt, sessão viva + `tokenVersion`, rate limit no login |
+| Deploy | Docker non-root (`USER node`) + HEALTHCHECK; Render: migrate + `node dist/server.js` |
 
 ---
 
@@ -32,9 +32,10 @@ Usuario
   └── isCrmOwner (plataforma; no máximo 1)
 ```
 
-JWT: `{ sub, role, empresaId? }`.  
-`authenticate` revalida usuário + membership no banco (Finding 004).  
-Queries de `/usuarios` e `/leads` filtram pelo `empresaId` do token (Findings 003 / 005).
+JWT: `{ sub, role, empresaId?, tokenVersion }`.  
+`authenticate` revalida usuário + membership + `tokenVersion` no banco (Findings 004 / 007).  
+Queries de `/usuarios` e `/leads` filtram pelo `empresaId` do token (Findings 003 / 005).  
+Login: rate limit 100/15min/IP (008), timing com bcrypt dummy (009).
 
 ### Login
 

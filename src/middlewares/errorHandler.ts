@@ -23,6 +23,19 @@ const errorHandler = (
         });
     }
 
+    // Finding 010 — body acima do limit do express.json
+    if (
+        err instanceof Error &&
+        ((err as { type?: string; status?: number; statusCode?: number }).type ===
+            'entity.too.large' ||
+            (err as { status?: number }).status === 413 ||
+            (err as { statusCode?: number }).statusCode === 413)
+    ) {
+        return res.status(413).json({
+            message: 'Payload muito grande'
+        });
+    }
+
     if (err instanceof MultiplasEmpresasError) {
         return res.status(409).json({
             message: 'Múltiplas empresas — informe empresaId no login',

@@ -8,7 +8,17 @@
 * 🟢 You can import this file directly.
 */
 export const Role = {
-    USER: 'USER',
-    ADMIN: 'ADMIN'
+    OWNER: 'OWNER',
+    ADMIN: 'ADMIN',
+    USER: 'USER'
+};
+export const LeadStatus = {
+    NOVO: 'NOVO',
+    EM_ATENDIMENTO: 'EM_ATENDIMENTO',
+    QUALIFICADO: 'QUALIFICADO',
+    PROPOSTA: 'PROPOSTA',
+    NEGOCIACAO: 'NEGOCIACAO',
+    CLIENTE: 'CLIENTE',
+    PERDIDO: 'PERDIDO'
 };
 //# sourceMappingURL=enums.js.map

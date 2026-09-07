@@ -6,6 +6,8 @@ export type TokenPayload = {
     role: EffectiveRole;
     /** Obrigatório para OWNER/ADMIN/USER; opcional para CRM_OWNER (contexto de tenant). */
     empresaId?: string;
+    /** Deve bater com Usuario.tokenVersion (Finding 007). */
+    tokenVersion: number;
 };
 
 const getSecret = () => {
@@ -19,7 +21,10 @@ const getSecret = () => {
 };
 
 const criarToken = async (payload: TokenPayload) => {
-    const claims: Record<string, string> = { role: payload.role };
+    const claims: Record<string, string | number> = {
+        role: payload.role,
+        tokenVersion: payload.tokenVersion
+    };
 
     if (payload.empresaId) {
         claims.empresaId = payload.empresaId;
@@ -39,12 +44,18 @@ const lerToken = async (token: string): Promise<TokenPayload> => {
     const role = payload.role;
     const empresaId =
         typeof payload.empresaId === 'string' ? payload.empresaId : undefined;
+    const tokenVersion = payload.tokenVersion;
 
-    if (!id || !isRole(role)) {
+    if (
+        !id ||
+        !isRole(role) ||
+        typeof tokenVersion !== 'number' ||
+        !Number.isInteger(tokenVersion)
+    ) {
         throw new Error('Não autorizado');
     }
 
-    return { id, role, empresaId };
+    return { id, role, empresaId, tokenVersion };
 };
 
 export { criarToken, lerToken };

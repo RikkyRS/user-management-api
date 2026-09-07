@@ -5,14 +5,28 @@ import { MultiplasEmpresasError } from '../lib/errors.js';
 import type { LoginInput } from '../modules/auth/auth.schema.js';
 import type { EffectiveRole } from '../lib/roles.js';
 
-const usuarioPublico = (usuario: {
-    id: string;
-    nome: string;
-    email: string;
-    createdAt: Date;
-    updatedAt: Date;
-    isCrmOwner: boolean;
-}, role: EffectiveRole, empresaId?: string) => ({
+/** Hash bcrypt cost 10 — equaliza timing quando o e-mail não existe (Finding 009). */
+let dummyHash: string | null = null;
+
+const getDummyHash = async () => {
+    if (!dummyHash) {
+        dummyHash = await bcrypt.hash('__timing_dummy__', 10);
+    }
+    return dummyHash;
+};
+
+const usuarioPublico = (
+    usuario: {
+        id: string;
+        nome: string;
+        email: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isCrmOwner: boolean;
+    },
+    role: EffectiveRole,
+    empresaId?: string
+) => ({
     id: usuario.id,
     nome: usuario.nome,
     email: usuario.email,
@@ -28,13 +42,10 @@ const login = async (dados: LoginInput) => {
         where: { email: dados.email }
     });
 
-    if (!usuario) {
-        throw new Error('Credenciais inválidas');
-    }
+    const hashParaCompare = usuario?.senha ?? (await getDummyHash());
+    const senhaOk = await bcrypt.compare(dados.senha, hashParaCompare);
 
-    const senhaOk = await bcrypt.compare(dados.senha, usuario.senha);
-
-    if (!senhaOk) {
+    if (!usuario || !senhaOk) {
         throw new Error('Credenciais inválidas');
     }
 
@@ -54,7 +65,8 @@ const login = async (dados: LoginInput) => {
         const token = await criarToken({
             id: usuario.id,
             role,
-            empresaId: dados.empresaId
+            empresaId: dados.empresaId,
+            tokenVersion: usuario.tokenVersion
         });
 
         return {
@@ -87,7 +99,8 @@ const login = async (dados: LoginInput) => {
         const token = await criarToken({
             id: usuario.id,
             role,
-            empresaId: membro.empresaId
+            empresaId: membro.empresaId,
+            tokenVersion: usuario.tokenVersion
         });
 
         return {
@@ -111,7 +124,8 @@ const login = async (dados: LoginInput) => {
     const token = await criarToken({
         id: usuario.id,
         role,
-        empresaId: unico.empresaId
+        empresaId: unico.empresaId,
+        tokenVersion: usuario.tokenVersion
     });
 
     return {

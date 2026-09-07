@@ -6,6 +6,7 @@ import type { EffectiveRole } from '../lib/roles.js';
 /**
  * Sessão viva: JWT só prova identidade + contexto.
  * Delete de usuário ou perda de membership → 401 na próxima request.
+ * Troca de senha (tokenVersion) → 401 (Finding 007).
  * Role efetiva sempre vem do banco (não confia só no claim).
  */
 const authenticate = async (
@@ -25,10 +26,14 @@ const authenticate = async (
 
         const usuario = await prisma.usuario.findUnique({
             where: { id: claims.id },
-            select: { id: true, isCrmOwner: true }
+            select: { id: true, isCrmOwner: true, tokenVersion: true }
         });
 
         if (!usuario) {
+            throw new Error('Não autorizado');
+        }
+
+        if (claims.tokenVersion !== usuario.tokenVersion) {
             throw new Error('Não autorizado');
         }
 
