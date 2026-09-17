@@ -37,6 +37,31 @@ export type PageResult<T> = {
   total: number;
 };
 
+export type MensagemDirecao = 'INBOUND' | 'OUTBOUND';
+
+export type Mensagem = {
+  id: string;
+  empresaId: string;
+  leadId: string;
+  direcao: MensagemDirecao;
+  texto: string;
+  waMessageId: string | null;
+  createdAt: string;
+};
+
+export type ConversaPreview = {
+  leadId: string;
+  nome: string;
+  telefone: string;
+  status: LeadStatus;
+  lastMessage: {
+    id: string;
+    texto: string;
+    direcao: MensagemDirecao;
+    createdAt: string;
+  };
+};
+
 export type EmpresaOption = {
   id: string;
   nome: string;

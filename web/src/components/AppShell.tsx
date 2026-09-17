@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/leads', label: 'Leads' },
+  { href: '/conversas', label: 'Conversas' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

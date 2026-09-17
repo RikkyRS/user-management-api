@@ -68,9 +68,11 @@ export const JsonNull = runtime.JsonNull;
 export const AnyNull = runtime.AnyNull;
 export const ModelName = {
     Empresa: 'Empresa',
+    WhatsappConfig: 'WhatsappConfig',
     Usuario: 'Usuario',
     MembroEmpresa: 'MembroEmpresa',
-    Lead: 'Lead'
+    Lead: 'Lead',
+    Mensagem: 'Mensagem'
 };
 /**
  * Enums
@@ -84,6 +86,17 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export const EmpresaScalarFieldEnum = {
     id: 'id',
     nome: 'nome',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+export const WhatsappConfigScalarFieldEnum = {
+    id: 'id',
+    empresaId: 'empresaId',
+    phoneNumberId: 'phoneNumberId',
+    displayPhone: 'displayPhone',
+    accessToken: 'accessToken',
+    appSecret: 'appSecret',
+    verifyToken: 'verifyToken',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };
@@ -117,6 +130,15 @@ export const LeadScalarFieldEnum = {
     responsavelUsuarioId: 'responsavelUsuarioId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
+};
+export const MensagemScalarFieldEnum = {
+    id: 'id',
+    empresaId: 'empresaId',
+    leadId: 'leadId',
+    direcao: 'direcao',
+    texto: 'texto',
+    waMessageId: 'waMessageId',
+    createdAt: 'createdAt'
 };
 export const SortOrder = {
     asc: 'asc',

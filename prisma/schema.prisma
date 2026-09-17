@@ -27,13 +27,33 @@ enum LeadStatus {
   PERDIDO
 }
 
+enum MensagemDirecao {
+  INBOUND
+  OUTBOUND
+}
+
 model Empresa {
-  id        String   @id @default(uuid()) @db.Uuid
-  nome      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  membros   MembroEmpresa[]
-  leads     Lead[]
+  id             String          @id @default(uuid()) @db.Uuid
+  nome           String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  membros        MembroEmpresa[]
+  leads          Lead[]
+  mensagens      Mensagem[]
+  whatsappConfig WhatsappConfig?
+}
+
+model WhatsappConfig {
+  id            String   @id @default(uuid()) @db.Uuid
+  empresaId     String   @unique @db.Uuid
+  phoneNumberId String   @unique
+  displayPhone  String?
+  accessToken   String
+  appSecret     String
+  verifyToken   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 }
 
 model Usuario {
@@ -79,10 +99,25 @@ model Lead {
   updatedAt            DateTime   @updatedAt
   empresa              Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   responsavel          Usuario?   @relation("LeadResponsavel", fields: [responsavelUsuarioId], references: [id], onDelete: SetNull)
+  mensagens            Mensagem[]
 
   @@unique([empresaId, telefone])
   @@unique([empresaId, email])
   @@index([empresaId])
   @@index([empresaId, responsavelUsuarioId])
   @@index([empresaId, status])
+}
+
+model Mensagem {
+  id          String           @id @default(uuid()) @db.Uuid
+  empresaId   String           @db.Uuid
+  leadId      String           @db.Uuid
+  direcao     MensagemDirecao
+  texto       String
+  waMessageId String?          @unique
+  createdAt   DateTime         @default(now())
+  empresa     Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId, leadId, createdAt])
 }

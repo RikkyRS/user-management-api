@@ -21,4 +21,8 @@ export const LeadStatus = {
     CLIENTE: 'CLIENTE',
     PERDIDO: 'PERDIDO'
 };
+export const MensagemDirecao = {
+    INBOUND: 'INBOUND',
+    OUTBOUND: 'OUTBOUND'
+};
 //# sourceMappingURL=enums.js.map

@@ -13,6 +13,39 @@ const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString })
 });
 
+const seedWhatsappConfig = async (empresaId: string) => {
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+    const appSecret = process.env.WHATSAPP_APP_SECRET?.trim();
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN?.trim();
+    const displayPhone = process.env.WHATSAPP_DISPLAY_PHONE?.trim();
+
+    if (!phoneNumberId || !accessToken || !appSecret || !verifyToken) {
+        return;
+    }
+
+    await prisma.whatsappConfig.upsert({
+        where: { empresaId },
+        create: {
+            empresaId,
+            phoneNumberId,
+            accessToken,
+            appSecret,
+            verifyToken,
+            displayPhone: displayPhone || undefined
+        },
+        update: {
+            phoneNumberId,
+            accessToken,
+            appSecret,
+            verifyToken,
+            ...(displayPhone ? { displayPhone } : {})
+        }
+    });
+
+    console.log(`WhatsappConfig upsert na empresa ${empresaId}`);
+};
+
 const seed = async () => {
     let empresa = await prisma.empresa.findFirst({
         orderBy: { createdAt: 'asc' }
@@ -26,6 +59,8 @@ const seed = async () => {
     } else {
         console.log(`Empresa demo: ${empresa.nome} (${empresa.id})`);
     }
+
+    await seedWhatsappConfig(empresa.id);
 
     const existente = await prisma.usuario.findFirst({
         where: { isCrmOwner: true }

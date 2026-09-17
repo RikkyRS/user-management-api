@@ -5,6 +5,9 @@ import usuarioRouter from './routes/usuarioRoutes.js';
 import authRouter from './routes/authRoutes.js';
 import empresaRouter from './routes/empresaRoutes.js';
 import leadRouter from './routes/leadRoutes.js';
+import conversaRouter from './routes/conversaRoutes.js';
+import whatsappConfigRouter from './routes/whatsappConfigRoutes.js';
+import whatsappWebhookRouter from './routes/whatsappWebhookRoutes.js';
 import csrfOrigin from './middlewares/csrfOrigin.js';
 import errorHandler from './middlewares/errorHandler.js';
 const app = express();
@@ -14,6 +17,8 @@ app.use(cors({
     origin: corsOrigin && corsOrigin.length > 0 ? corsOrigin : false,
     credentials: true
 }));
+// Raw body obrigatório para validar X-Hub-Signature-256 (antes do json global)
+app.use('/webhooks/whatsapp', whatsappWebhookRouter);
 app.use(express.json({ limit: '32kb' }));
 app.use(csrfOrigin);
 app.get('/health', (_req, res) => {
@@ -23,6 +28,8 @@ app.use('/auth', authRouter);
 app.use('/empresas', empresaRouter);
 app.use('/usuarios', usuarioRouter);
 app.use('/leads', leadRouter);
+app.use('/conversas', conversaRouter);
+app.use('/whatsapp', whatsappConfigRouter);
 app.use(errorHandler);
 export default app;
 //# sourceMappingURL=app.js.map

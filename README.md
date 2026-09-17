@@ -136,11 +136,34 @@ Autenticado (cookie `crm_session` HttpOnly **ou** `Authorization: Bearer`):
 | `GET` | `/leads` | autenticado + empresa | Paginado + `?status&q`; staff: todos; USER: só os seus |
 | `GET/PUT/PATCH` | `/leads/:id` | autenticado + escopo | Staff ou responsável |
 | `DELETE` | `/leads/:id` | staff | Remove lead |
+| `GET` | `/conversas` | autenticado + empresa | Threads (leads com ≥1 msg) + preview |
+| `GET` | `/conversas/:leadId/mensagens` | autenticado + escopo | Mensagens paginadas |
+| `POST` | `/conversas/:leadId/mensagens` | autenticado + escopo | Envia texto (Cloud API ou mock) |
+| `PUT` | `/whatsapp/config` | CRM_OWNER / OWNER + empresa | Upsert credenciais Meta do tenant |
+
+Público (WhatsApp webhook — sem JWT):
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/webhooks/whatsapp` | Verify (`hub.mode` / `hub.verify_token` / `hub.challenge`) |
+| `POST` | `/webhooks/whatsapp` | Inbound; exige `X-Hub-Signature-256` (HMAC-SHA256 do raw body) |
 
 Paginação: `page` (default 1), `limit` (default 20, max 100).
 
 `POST /auth/register` **não existe** (Finding 001).
 
+---
+
+## WhatsApp (Meta Cloud API)
+
+Credenciais **por empresa** (`WhatsappConfig`). Sem IA, auto-reply, mídia ou campanhas neste ciclo.
+
+1. `PUT /whatsapp/config` com `phoneNumberId`, `accessToken`, `appSecret`, `verifyToken` (`displayPhone` opcional).
+2. Aponte o webhook da Meta para `https://<host>/webhooks/whatsapp` (precisa URL pública — ex. ngrok em dev).
+3. Mensagens texto inbound → upsert `Lead` (`origem=whatsapp`) + `Mensagem` INBOUND.
+4. Painel `/conversas` (front) lista threads e permite reply manual via `POST /conversas/:leadId/mensagens`.
+
+`WHATSAPP_MOCK=true` (ou token vazio) grava OUTBOUND no banco **sem** chamar a Graph API — útil em CI.
 ---
 
 ## Exemplos
@@ -218,6 +241,8 @@ Content-Type: application/json
 | `COOKIE_SECURE` | `true` força Secure; SameSite=None sempre usa Secure |
 | `CRM_OWNER_EMAIL` / `PASSWORD` / `NOME` | Seed do dono da plataforma |
 | `EMPRESA_DEMO_NOME` | Seed: nome da primeira empresa |
+| `WHATSAPP_MOCK` | `true` = não chama Graph API no outbound |
+| `WHATSAPP_*` | Seed opcional de `WhatsappConfig` na empresa demo |
 
 ---
 
@@ -244,11 +269,11 @@ CI no GitHub Actions (PR + `main`): `npm ci` → migrate → seed → build → 
 
 ## Fora de escopo (hoje)
 
-WhatsApp webhook, agentes de IA, RAG, White Label, refresh token, OpenAPI, deploy automático.
+Agentes de IA, RAG, auto-reply WhatsApp, mídia completa, campanhas, White Label, refresh token, OpenAPI, deploy automático.
 
 ### Frontend
 
-Pasta [`web/`](./web) — MVP fase 1 (login, dashboard, leads). Ver `web/README.md`.
+Pasta [`web/`](./web) — login, dashboard, leads, **conversas** (lista + thread + reply manual). Ver `web/README.md`.
 
 ---
 

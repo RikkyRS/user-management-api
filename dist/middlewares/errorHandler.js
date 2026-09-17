@@ -66,6 +66,18 @@ const errorHandler = (err, _req, res, _next) => {
         });
     }
     if (err instanceof Error &&
+        err.message === 'Config WhatsApp não encontrada') {
+        return res.status(404).json({
+            message: 'Config WhatsApp não encontrada'
+        });
+    }
+    if (err instanceof Error &&
+        err.message.startsWith('Falha ao enviar WhatsApp:')) {
+        return res.status(502).json({
+            message: err.message
+        });
+    }
+    if (err instanceof Error &&
         err.message === 'Responsável inválido para o tenant') {
         return res.status(400).json({
             message: 'Responsável inválido para o tenant'
