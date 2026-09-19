@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [pickingEmpresa, setPickingEmpresa] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     // Só redireciona se já tem tenant na sessão e não está no meio da escolha
@@ -94,14 +95,24 @@ export default function LoginPage() {
           </label>
           <label className="block text-sm">
             <span className="text-[var(--muted)]">Senha</span>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 outline-none ring-[var(--accent)] focus:ring-2"
-            />
+            <span className="relative mt-1 block">
+              <input
+                type={mostrarSenha ? 'text' : 'password'}
+                required
+                autoComplete="current-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="w-full rounded-lg border border-[var(--line)] bg-white py-2 pl-3 pr-11 outline-none ring-[var(--accent)] focus:ring-2"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((v) => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-xs text-[var(--muted)] hover:text-[var(--ink)]"
+                aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {mostrarSenha ? 'Ocultar' : 'Ver'}
+              </button>
+            </span>
           </label>
 
           {pickingEmpresa && empresas.length > 0 && (

@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { clearToken } from '@/lib/auth';
+import { clearBearer, setBearer } from '@/lib/session';
 import type { EmpresaOption, Me } from '@/lib/types';
 
 type AuthContextValue = {
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        clearToken(); // aposenta localStorage legado
+        clearToken();
         await refreshMe();
       } catch {
         if (!cancelled) setMe(null);
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           auth: false,
         });
         clearToken();
+        if (result.token) {
+          setBearer(result.token);
+        }
         setMe(result.usuario);
         return {
           needsEmpresa: false,
@@ -97,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // limpa estado local mesmo se logout falhar
       } finally {
         clearToken();
+        clearBearer();
         setMe(null);
         router.replace('/login');
       }

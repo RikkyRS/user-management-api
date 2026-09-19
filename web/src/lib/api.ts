@@ -1,4 +1,5 @@
 import { clearToken, getToken } from './auth';
+import { clearBearer, getBearer } from './session';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -32,7 +33,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   }
 
   // Compat legado: se ainda houver token em storage (sessão antiga), manda Bearer
-  const legacy = options.token !== undefined ? options.token : getToken();
+  const legacy = options.token !== undefined ? options.token : getBearer() ?? getToken();
   if (auth && legacy) {
     headers.Authorization = `Bearer ${legacy}`;
   }
@@ -56,6 +57,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   if (res.status === 401 && auth) {
     clearToken();
+    clearBearer();
   }
 
   if (!res.ok) {

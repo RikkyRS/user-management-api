@@ -50,28 +50,36 @@ const login = async (dados: LoginInput) => {
     }
 
     if (usuario.isCrmOwner) {
-        if (dados.empresaId) {
+        let empresaId = dados.empresaId;
+
+        if (empresaId) {
             const empresa = await prisma.empresa.findUnique({
-                where: { id: dados.empresaId },
+                where: { id: empresaId },
                 select: { id: true }
             });
 
             if (!empresa) {
                 throw new Error('Empresa não encontrada');
             }
+        } else {
+            const primeira = await prisma.empresa.findFirst({
+                orderBy: { createdAt: 'asc' },
+                select: { id: true }
+            });
+            empresaId = primeira?.id;
         }
 
         const role: EffectiveRole = 'CRM_OWNER';
         const token = await criarToken({
             id: usuario.id,
             role,
-            empresaId: dados.empresaId,
+            empresaId,
             tokenVersion: usuario.tokenVersion
         });
 
         return {
             token,
-            usuario: usuarioPublico(usuario, role, dados.empresaId)
+            usuario: usuarioPublico(usuario, role, empresaId)
         };
     }
 

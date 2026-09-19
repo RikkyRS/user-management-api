@@ -14,7 +14,7 @@ const csrfOrigin = (req: Request, res: Response, next: NextFunction) => {
     const hasCookie = Boolean(parseSessionToken(req.headers.cookie));
     const hasBearer = Boolean(req.headers.authorization?.startsWith('Bearer '));
 
-    if (hasBearer && !hasCookie) {
+    if (hasBearer) {
         return next();
     }
 

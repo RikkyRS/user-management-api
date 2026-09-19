@@ -62,21 +62,9 @@ const seed = async () => {
 
     await seedWhatsappConfig(empresa.id);
 
-    const existente = await prisma.usuario.findFirst({
-        where: { isCrmOwner: true }
-    });
-
-    if (existente) {
-        console.log(`CRM_OWNER já existe: ${existente.email}`);
-        console.log(
-            `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
-        );
-        return;
-    }
-
-    const email = process.env.CRM_OWNER_EMAIL;
+    const email = process.env.CRM_OWNER_EMAIL?.trim();
     const senha = process.env.CRM_OWNER_PASSWORD;
-    const nome = process.env.CRM_OWNER_NOME ?? 'Dono do CRM';
+    const nome = process.env.CRM_OWNER_NOME?.trim() || 'Dono do CRM';
 
     if (!email) {
         console.log(
@@ -85,47 +73,66 @@ const seed = async () => {
         return;
     }
 
-    const porEmail = await prisma.usuario.findUnique({
-        where: { email }
-    });
-
-    if (porEmail) {
-        await prisma.usuario.update({
-            where: { id: porEmail.id },
-            data: { isCrmOwner: true }
-        });
-        console.log(`Usuário existente promovido a CRM_OWNER: ${email}`);
-        console.log(
-            `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
-        );
-        return;
-    }
-
-    if (!senha) {
-        throw new Error(
-            `E-mail ${email} não existe. Defina CRM_OWNER_PASSWORD para criar o dono.`
-        );
-    }
-
-    if (senha.length < 8) {
-        throw new Error('CRM_OWNER_PASSWORD deve ter no mínimo 8 caracteres');
+    if (!senha || senha.length < 8) {
+        throw new Error('CRM_OWNER_PASSWORD é obrigatório e deve ter no mínimo 8 caracteres');
     }
 
     const senhaHash = await bcrypt.hash(senha, 10);
 
-    const dono = await prisma.usuario.create({
-        data: {
-            nome,
-            email,
-            senha: senhaHash,
-            isCrmOwner: true
-        },
-        select: { id: true, email: true, isCrmOwner: true }
+    const donoAtual = await prisma.usuario.findFirst({
+        where: { isCrmOwner: true }
+    });
+    const porEmail = await prisma.usuario.findUnique({
+        where: { email }
     });
 
-    console.log(`CRM_OWNER criado: ${dono.email}`);
+    if (donoAtual && porEmail && donoAtual.id !== porEmail.id) {
+        throw new Error(
+            `CRM_OWNER é ${donoAtual.email}, mas ${email} já existe como outro usuário`
+        );
+    }
+
+    const donoId = donoAtual?.id ?? porEmail?.id;
+    const dono = donoId
+        ? await prisma.usuario.update({
+              where: { id: donoId },
+              data: {
+                  nome,
+                  email,
+                  senha: senhaHash,
+                  isCrmOwner: true,
+                  tokenVersion: { increment: 1 }
+              },
+              select: { id: true, email: true }
+          })
+        : await prisma.usuario.create({
+              data: {
+                  nome,
+                  email,
+                  senha: senhaHash,
+                  isCrmOwner: true
+              },
+              select: { id: true, email: true }
+          });
+
+    await prisma.membroEmpresa.upsert({
+        where: {
+            usuarioId_empresaId: {
+                usuarioId: dono.id,
+                empresaId: empresa.id
+            }
+        },
+        create: {
+            usuarioId: dono.id,
+            empresaId: empresa.id,
+            role: 'OWNER'
+        },
+        update: { role: 'OWNER' }
+    });
+
+    console.log(`CRM_OWNER: ${dono.email} (plataforma + OWNER na empresa ${empresa.nome})`);
     console.log(
-        `Login com contexto: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
+        `Login: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
     );
 };
 
