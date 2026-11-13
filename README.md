@@ -1,6 +1,10 @@
-# User Management API
+# Pipeline CRM — User Management API
 
-API REST multiempresa para um CRM. Sem frontend. Autenticação JWT com **sessão viva**, autorização por hierarquia de roles **por tenant**, cadastro de funcionários **somente por staff**, e **Lead** como dado comercial (sem login).
+**Demonstração ao vivo:** https://user-management-api-gray.vercel.app — clique em **"Entrar como demonstração"** (sem cadastro; dados fictícios de uma revenda de veículos, recriados a cada deploy).
+
+CRM multiempresa: API REST (Express) + painel web (Next.js) no mesmo domínio. Funil de leads por etapa, conversas do WhatsApp junto do lead e controle de acesso por papel.
+
+API REST multiempresa para um CRM. Autenticação JWT com **sessão viva**, autorização por hierarquia de roles **por tenant**, cadastro de funcionários **somente por staff**, e **Lead** como dado comercial (sem login).
 
 O dono da plataforma (`CRM_OWNER`, flag `isCrmOwner`) nasce no seed/SQL. Cada empresa tem memberships `OWNER` / `ADMIN` / `USER` e seus próprios leads. Quem não trabalha na empresa não tem auto-cadastro. Cliente/lead **não** é `Usuario`.
 
@@ -17,7 +21,9 @@ Documentação de ameaças e findings: [`docs/security`](./docs/security).
 | Validação | Zod |
 | Persistência | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`) |
 | Auth | JWT HS256 (`jose`), cookie HttpOnly + Bearer, sessão viva + `tokenVersion`, rate limit no login |
-| Deploy | Docker non-root (`USER node`) + HEALTHCHECK; Render: migrate + `node dist/server.js` |
+| Painel | Next.js 15 + Tailwind (pasta `web/`) |
+| Banco | Supabase (Postgres) via integração Vercel Marketplace |
+| Deploy | Vercel Services: `web` em `/` e `api` em `/api` no mesmo domínio (cookie HttpOnly de primeira parte); build roda `prisma migrate deploy` + seed. Docker non-root + HEALTHCHECK continua disponível para outras plataformas |
 
 ---
 
@@ -226,6 +232,12 @@ Content-Type: application/json
 
 { "status": "EM_ATENDIMENTO" }
 ```
+
+---
+
+## Modo demonstração
+
+Com `DEMO_MODE=true`, o seed recria a empresa **Revenda Aurora (demonstração)** com 12 leads e conversas fictícias, e o painel mostra o botão **Entrar como demonstração** (`POST /auth/demo`). A conta demo não tem senha utilizável; o que visitantes mudarem volta ao original no próximo deploy.
 
 ---
 
