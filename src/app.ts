@@ -13,6 +13,10 @@ import errorHandler from './middlewares/errorHandler.js';
 
 const app = express();
 
+// Atrás do proxy da Vercel/Render: o IP real vem em X-Forwarded-For.
+// Sem isso, o rate limit do login enxerga o IP do proxy e todos dividem o mesmo limite.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 
 const corsOrigin = process.env.CORS_ORIGIN?.trim();

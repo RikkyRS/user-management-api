@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { clearToken } from '@/lib/auth';
-import { clearBearer, setBearer } from '@/lib/session';
+import { clearBearer } from '@/lib/session';
 import type { EmpresaOption, Me } from '@/lib/types';
 
 type AuthContextValue = {
@@ -68,10 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: { email, senha, ...(empresaId ? { empresaId } : {}) },
           auth: false,
         });
+        // Sessão = cookie HttpOnly (mesmo domínio via /api). Nada de token no storage.
         clearToken();
-        if (result.token) {
-          setBearer(result.token);
-        }
+        clearBearer();
         setMe(result.usuario);
         return {
           needsEmpresa: false,

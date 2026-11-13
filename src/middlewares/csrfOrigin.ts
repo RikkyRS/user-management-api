@@ -18,10 +18,7 @@ const csrfOrigin = (req: Request, res: Response, next: NextFunction) => {
         return next();
     }
 
-    const allowed = process.env.CORS_ORIGIN?.trim();
-    if (!allowed) {
-        return next();
-    }
+    const allowed = process.env.CORS_ORIGIN?.trim() ?? '';
 
     let candidate: string | null = null;
     const origin = req.headers.origin;
@@ -43,7 +40,18 @@ const csrfOrigin = (req: Request, res: Response, next: NextFunction) => {
         return res.status(403).json({ message: 'Origin inválida' });
     }
 
-    if (candidate !== allowed) {
+    // Mesma origem (painel e API no mesmo domínio, ex.: Vercel Services com /api):
+    // o host da origem é o próprio host que recebeu a requisição.
+    const hostDaRequisicao =
+        (req.headers['x-forwarded-host'] as string | undefined) ?? req.headers.host;
+    let mesmaOrigem = false;
+    try {
+        mesmaOrigem = Boolean(hostDaRequisicao) && new URL(candidate).host === hostDaRequisicao;
+    } catch {
+        mesmaOrigem = false;
+    }
+
+    if (candidate !== allowed && !mesmaOrigem) {
         return res.status(403).json({ message: 'Origin inválida' });
     }
 

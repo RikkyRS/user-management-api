@@ -1,7 +1,8 @@
 import { clearToken, getToken } from './auth';
 import { clearBearer, getBearer } from './session';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// Em produção o painel e a API ficam no mesmo domínio: a API responde em /api.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 export class ApiError extends Error {
   status: number;
