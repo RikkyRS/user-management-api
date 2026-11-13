@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import { AuthProvider } from '@/components/AuthProvider';
 import './globals.css';
 
-const display = Fraunces({
+const display = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
 });
 
-const body = Source_Sans_3({
+const body = Inter({
   subsets: ['latin'],
   variable: '--font-body',
 });
 
 export const metadata: Metadata = {
-  title: 'CRM',
-  description: 'Painel do CRM — leads e operação',
+  title: 'Pipeline CRM',
+  description: 'CRM multiempresa: leads, funil de vendas e conversas de WhatsApp num só lugar.',
 };
 
 export default function RootLayout({

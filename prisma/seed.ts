@@ -3,11 +3,27 @@ import bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
-const connectionString = process.env.DATABASE_URL;
+import { seedDemo } from './seedDemo.js';
 
-if (!connectionString) {
-    throw new Error('DATABASE_URL é obrigatório para o seed');
+// Local: DATABASE_URL. Vercel + Supabase: conexão sem pooler de transação.
+const urlBruta = process.env.DATABASE_URL ?? process.env.POSTGRES_URL_NON_POOLING;
+
+if (!urlBruta) {
+    throw new Error('DATABASE_URL (ou POSTGRES_URL_NON_POOLING) é obrigatório para o seed');
 }
+
+// Mesmo ajuste de SSL do src/lib/prisma.ts (ver comentário lá).
+const connectionString = (() => {
+    try {
+        const u = new URL(urlBruta);
+        if (u.searchParams.get('sslmode') === 'require' && !u.searchParams.has('uselibpqcompat')) {
+            u.searchParams.set('uselibpqcompat', 'true');
+        }
+        return u.toString();
+    } catch {
+        return urlBruta;
+    }
+})();
 
 const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString })
@@ -70,6 +86,7 @@ const seed = async () => {
         console.log(
             'Nenhum CRM_OWNER. Defina CRM_OWNER_EMAIL (+ PASSWORD) e rode o seed.'
         );
+        await seedDemo(prisma);
         return;
     }
 
@@ -93,15 +110,17 @@ const seed = async () => {
     }
 
     const donoId = donoAtual?.id ?? porEmail?.id;
+    const existente = donoAtual ?? porEmail;
+    // O seed roda em todo deploy: só troca a senha (e derruba as sessões) se ela mudou de verdade.
+    const senhaMudou = existente ? !(await bcrypt.compare(senha, existente.senha)) : true;
     const dono = donoId
         ? await prisma.usuario.update({
               where: { id: donoId },
               data: {
                   nome,
                   email,
-                  senha: senhaHash,
                   isCrmOwner: true,
-                  tokenVersion: { increment: 1 }
+                  ...(senhaMudou ? { senha: senhaHash, tokenVersion: { increment: 1 } } : {})
               },
               select: { id: true, email: true }
           })
@@ -134,6 +153,8 @@ const seed = async () => {
     console.log(
         `Login: POST /auth/login { email, senha, empresaId: "${empresa.id}" }`
     );
+
+    await seedDemo(prisma);
 };
 
 seed()

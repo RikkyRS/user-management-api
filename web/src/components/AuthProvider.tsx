@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { clearToken } from '@/lib/auth';
-import { clearBearer, setBearer } from '@/lib/session';
+import { clearBearer } from '@/lib/session';
 import type { EmpresaOption, Me } from '@/lib/types';
 
 type AuthContextValue = {
@@ -27,6 +27,7 @@ type AuthContextValue = {
     empresas: EmpresaOption[];
     usuario: Me | null;
   }>;
+  loginDemo: () => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -68,10 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: { email, senha, ...(empresaId ? { empresaId } : {}) },
           auth: false,
         });
+        // Sessão = cookie HttpOnly (mesmo domínio via /api). Nada de token no storage.
         clearToken();
-        if (result.token) {
-          setBearer(result.token);
-        }
+        clearBearer();
         setMe(result.usuario);
         return {
           needsEmpresa: false,
@@ -93,6 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const loginDemo = useCallback(async () => {
+    const result = await api<{ usuario: Me }>('/auth/demo', { method: 'POST', auth: false });
+    clearToken();
+    clearBearer();
+    setMe(result.usuario);
+  }, []);
+
   const logout = useCallback(() => {
     void (async () => {
       try {
@@ -109,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ me, loading, login, logout, refreshMe }),
-    [me, loading, login, logout, refreshMe]
+    () => ({ me, loading, login, loginDemo, logout, refreshMe }),
+    [me, loading, login, loginDemo, logout, refreshMe]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

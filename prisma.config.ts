@@ -10,6 +10,7 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrações precisam de conexão sem pooler de transação (Vercel + Supabase: POSTGRES_URL_NON_POOLING).
+    url: process.env["DATABASE_URL"] ?? process.env["POSTGRES_URL_NON_POOLING"],
   },
 });

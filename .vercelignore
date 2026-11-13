@@ -1,0 +1,16 @@
+# Nunca enviar segredos locais para o build da Vercel
+.env
+.env.*
+!.env.example
+web/.env*.local
+web/.env.local
+# Artefatos e ferramentas locais
+dist
+node_modules
+web/node_modules
+web/.next
+.harness
+.windsurf
+.agents
+.claude
+guias

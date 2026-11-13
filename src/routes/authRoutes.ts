@@ -1,6 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, me, logout } from '../controllers/authController.js';
+import { login, loginDemo, demoStatus, me, logout } from '../controllers/authController.js';
 import authenticate from '../middlewares/authenticate.js';
 
 const authRouter = express.Router();
@@ -15,6 +15,8 @@ const loginRateLimit = rateLimit({
 });
 
 authRouter.post('/login', loginRateLimit, login);
+authRouter.post('/demo', loginRateLimit, loginDemo);
+authRouter.get('/demo', demoStatus);
 authRouter.post('/logout', logout);
 authRouter.get('/me', authenticate, me);
 

@@ -4,6 +4,7 @@ import { criarToken } from '../lib/jwt.js';
 import { MultiplasEmpresasError } from '../lib/errors.js';
 import type { LoginInput } from '../modules/auth/auth.schema.js';
 import type { EffectiveRole } from '../lib/roles.js';
+import { DEMO_EMPRESA_ID, DEMO_USUARIO_ID } from '../lib/demo.js';
 
 /** Hash bcrypt cost 10 — equaliza timing quando o e-mail não existe (Finding 009). */
 let dummyHash: string | null = null;
@@ -142,4 +143,34 @@ const login = async (dados: LoginInput) => {
     };
 };
 
-export { login };
+/**
+ * Login de demonstração: entra como o visitante da empresa de exemplo, sem senha.
+ * Só é chamado quando DEMO_MODE=true (checado no controller).
+ */
+const loginDemo = async () => {
+    const usuario = await prisma.usuario.findUnique({ where: { id: DEMO_USUARIO_ID } });
+    const membro = usuario
+        ? await prisma.membroEmpresa.findUnique({
+              where: {
+                  usuarioId_empresaId: { usuarioId: usuario.id, empresaId: DEMO_EMPRESA_ID }
+              },
+              select: { role: true }
+          })
+        : null;
+
+    if (!usuario || !membro) {
+        throw new Error('Demonstração indisponível');
+    }
+
+    const role = membro.role as EffectiveRole;
+    const token = await criarToken({
+        id: usuario.id,
+        role,
+        empresaId: DEMO_EMPRESA_ID,
+        tokenVersion: usuario.tokenVersion
+    });
+
+    return { token, usuario: usuarioPublico(usuario, role, DEMO_EMPRESA_ID) };
+};
+
+export { login, loginDemo };

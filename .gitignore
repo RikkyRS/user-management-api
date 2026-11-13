@@ -8,3 +8,8 @@ web/.env*.local
 
 # Caderno de bordo local (guias em linguagem simples — não versionar)
 /guias/
+# Build local (gerado pelo tsc)
+/dist
+
+.vercel
+.env*
