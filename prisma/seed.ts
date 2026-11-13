@@ -91,7 +91,10 @@ const seed = async () => {
     }
 
     if (!senha || senha.length < 8) {
-        throw new Error('CRM_OWNER_PASSWORD é obrigatório e deve ter no mínimo 8 caracteres');
+        // Não derruba o build: sem senha válida, só a demonstração fica disponível.
+        console.log('CRM_OWNER_PASSWORD ausente ou com menos de 8 caracteres: dono não criado nesta execução.');
+        await seedDemo(prisma);
+        return;
     }
 
     const senhaHash = await bcrypt.hash(senha, 10);
