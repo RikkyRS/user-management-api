@@ -3,14 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f3f1ec;
-  --surface: #fffcf7;
-  --ink: #1c1917;
-  --muted: #78716c;
-  --line: #e7e5e4;
-  --accent: #0f766e;
-  --accent-soft: #ccfbf1;
-  --danger: #b91c1c;
+  --bg: #0a0d14;
+  --surface: #11151f;
+  --surface-2: #171c28;
+  --ink: #e6e9ef;
+  --muted: #8b93a7;
+  --line: #222838;
+  --accent: #7c6cff;
+  --accent-2: #2dd4bf;
+  --accent-soft: rgba(124, 108, 255, 0.14);
+  --danger: #f87171;
+  color-scheme: dark;
 }
 
 body {
@@ -20,5 +23,39 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+}
+
+/* Campos de formulário herdam o tema escuro em todas as telas */
+input,
+select,
+textarea {
+  background-color: var(--surface-2);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.card {
+  @apply rounded-2xl border border-[var(--line)] bg-[var(--surface)];
+}
+
+.grid-glow {
+  background-image:
+    radial-gradient(600px circle at 15% 10%, rgba(124, 108, 255, 0.18), transparent 60%),
+    radial-gradient(500px circle at 85% 30%, rgba(45, 212, 191, 0.12), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: auto, auto, 32px 32px, 32px 32px;
+}
+
+@keyframes subir {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-subir {
+  animation: subir 0.45s ease-out both;
 }

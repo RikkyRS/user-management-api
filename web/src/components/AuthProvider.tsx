@@ -27,6 +27,7 @@ type AuthContextValue = {
     empresas: EmpresaOption[];
     usuario: Me | null;
   }>;
+  loginDemo: () => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -92,6 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const loginDemo = useCallback(async () => {
+    const result = await api<{ usuario: Me }>('/auth/demo', { method: 'POST', auth: false });
+    clearToken();
+    clearBearer();
+    setMe(result.usuario);
+  }, []);
+
   const logout = useCallback(() => {
     void (async () => {
       try {
@@ -108,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ me, loading, login, logout, refreshMe }),
-    [me, loading, login, logout, refreshMe]
+    () => ({ me, loading, login, loginDemo, logout, refreshMe }),
+    [me, loading, login, loginDemo, logout, refreshMe]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
