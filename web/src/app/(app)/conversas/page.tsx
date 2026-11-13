@@ -109,9 +109,9 @@ export default function ConversasPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl tracking-tight">Conversas</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">Conversas</h1>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        Threads WhatsApp do tenant — resposta manual
+        Atendimento pelo WhatsApp, junto de cada lead
       </p>
 
       {error && (

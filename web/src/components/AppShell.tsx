@@ -36,7 +36,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, logout } = useAuth();
   const demo = me?.email === DEMO_EMAIL;
   const iniciais = (me?.nome ?? '?')
+    .replace(/[^\p{L}\s]/gu, '')
     .split(' ')
+    .filter(Boolean)
     .map((p) => p[0])
     .slice(0, 2)
     .join('')
