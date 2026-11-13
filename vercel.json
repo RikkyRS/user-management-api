@@ -7,7 +7,7 @@
     "api": {
       "root": ".",
       "entrypoint": "src/app.ts",
-      "buildCommand": "npx prisma generate && npx prisma migrate deploy",
+      "buildCommand": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed",
       "rewrites": [
         { "source": "/api/:path(.*)?", "destination": "/:path" }
       ]

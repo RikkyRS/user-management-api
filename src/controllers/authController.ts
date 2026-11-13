@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { loginSchema } from '../modules/auth/auth.schema.js';
-import { login as loginService } from '../services/authService.js';
+import { login as loginService, loginDemo as loginDemoService } from '../services/authService.js';
+import { demoAtivo } from '../lib/demo.js';
 import { me as meService } from '../services/meService.js';
 import {
     buildSessionCookie,
@@ -41,4 +42,22 @@ const logout = async (_req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export { login, me, logout };
+const loginDemo = async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (!demoAtivo()) {
+            res.status(404).json({ message: 'Demonstração desativada' });
+            return;
+        }
+        const resultado = await loginDemoService();
+        res.setHeader('Set-Cookie', buildSessionCookie(resultado.token));
+        res.json({ usuario: resultado.usuario });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const demoStatus = (_req: Request, res: Response) => {
+    res.json({ ativo: demoAtivo() });
+};
+
+export { login, loginDemo, demoStatus, me, logout };
